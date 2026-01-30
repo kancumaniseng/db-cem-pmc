@@ -81,13 +81,33 @@ const formatDate = (date) => {
   }
   return date.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: '2-digit'});
 };
+
+// UPDATED: Label Putih Terang dengan Shadow Hitam
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
   if (percent < 0.02) return null;
-  return <text x={x} y={y} fill="#1e293b" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={11} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.8)' }}>{value}</text>;
+
+  return (
+    <text 
+      x={x} 
+      y={y} 
+      fill="#ffffff" 
+      textAnchor="middle" 
+      dominantBaseline="central" 
+      fontSize={12} 
+      fontWeight="bold" 
+      style={{ 
+        textShadow: '0px 1px 3px rgba(0,0,0,0.8)', 
+        pointerEvents: 'none' 
+      }}
+    >
+      {value}
+    </text>
+  );
 };
 
 // --- KOMPONEN UI ---
@@ -176,7 +196,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     </div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi 2.3 (Admin/Guest Mode)</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi 2.4 (Admin/Guest Mode)</p>
             </div>
         </div>
     );
@@ -211,7 +231,7 @@ export default function App() {
   const [loadChartMetric, setLoadChartMetric] = useState('total');
   const [isDoneListOpen, setIsDoneListOpen] = useState(false);
   const [showAllProfitability, setShowAllProfitability] = useState(false);
-  const [profitViewMode, setProfitViewMode] = useState('owner'); // Changed Default to Owner
+  const [profitViewMode, setProfitViewMode] = useState('owner'); 
   const [selectedProjectForNotes, setSelectedProjectForNotes] = useState(null);
   const [notes, setNotes] = useState(() => { try { return JSON.parse(localStorage.getItem('cost_dashboard_notes_v8')) || {}; } catch { return {}; } });
   const [newNote, setNewNote] = useState("");
@@ -235,12 +255,9 @@ export default function App() {
       const newAuth = { isAuth: true, role: role };
       setAuth(newAuth);
       localStorage.setItem('cost_dashboard_auth_state', JSON.stringify(newAuth));
-      
-      // Auto set view mode for Guest
       if (role === 'guest') {
           setProfitViewMode('owner');
       }
-      
       setAdminPassInput(passwords.admin);
       setGuestPassInput(passwords.guest);
   };
