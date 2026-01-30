@@ -97,15 +97,12 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  
-  // Hanya tampilkan jika irisan > 1%
-  if (percent < 0.01) return null;
-
-  return (
-    <text x={x} y={y} fill="#1e293b" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={11} fontWeight="bold" style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.5)' }}>
+  // Hanya tampilkan jika irisan cukup besar
+  return percent > 0.02 ? (
+    <text x={x} y={y} fill="#1e293b" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize={10} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.9)' }}>
       {value}
     </text>
-  );
+  ) : null;
 };
 
 // --- KOMPONEN UI ---
@@ -174,7 +171,7 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
     </Card>
 );
 
-// Komponen Baris Tabel (Reusable)
+// Komponen Baris Tabel (Reusable) - UPDATE: Menambah Kolom Kontrak dan GPM Contract
 const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
     <tr className="hover:bg-slate-50/80 transition-colors group border-b border-slate-50 last:border-0">
         <td className="px-6 py-4 font-medium text-slate-700 align-top">
@@ -188,7 +185,13 @@ const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
         <td className="px-6 py-4 text-xs align-top pt-4 whitespace-nowrap">{project.pic}</td>
         <td className="px-6 py-4 text-right font-mono text-xs text-slate-500 align-top pt-4 whitespace-nowrap">{formatCurrency(project.barecost)}</td>
         <td className="px-6 py-4 text-right font-mono text-xs text-slate-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.penawaran)}</td>
+        {/* NEW COLUMN: Contract Value */}
+        <td className="px-6 py-4 text-right font-mono text-xs text-blue-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.kontrak)}</td>
+        
         <td className="px-6 py-4 text-right font-mono text-xs text-emerald-600 font-bold align-top pt-4">{formatPercent(project.gpm_offer_pct)}</td>
+        {/* NEW COLUMN: GPM Contract */}
+        <td className="px-6 py-4 text-right font-mono text-xs text-blue-600 font-bold align-top pt-4">{formatPercent(project.gpm_contract_pct)}</td>
+        
         <td className="px-6 py-4 text-center text-xs text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
         <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
         <td className="px-6 py-4 text-center align-top pt-4">
@@ -206,7 +209,7 @@ const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
 
 // --- KOMPONEN UTAMA (APP) ---
 
-const MOCK_DATA = [{ id: 1, project_name: "Contoh Proyek (Mock)", owner: "PT Mock", pic: "Admin", barecost: 100, penawaran: 120, gpm_offer_pct: 20, gpm_contract_pct: 0, status: "On Track", progress: 50, last_update_date: new Date() }];
+const MOCK_DATA = [{ id: 1, project_name: "Contoh Proyek (Mock)", owner: "PT Mock", pic: "Admin", barecost: 100, penawaran: 120, kontrak: 110, gpm_offer_pct: 20, gpm_contract_pct: 10, status: "On Track", progress: 50, last_update_date: new Date() }];
 
 export default function App() {
   const [data, setData] = useState([]);
@@ -382,7 +385,7 @@ export default function App() {
     fetchData();
   }, [fetchData]);
 
-  // --- Helper Notes ---
+  // --- Helper Notes (Project Name Key) ---
   const handleAddNote = () => {
     if (!newNote.trim()) return;
     const timestamp = new Date().toLocaleString('id-ID');
@@ -446,7 +449,7 @@ export default function App() {
     return { low: low || LOAD_LIMITS.LOW, high: high || LOAD_LIMITS.HIGH };
   }, [stats.totalProjects, loadSettings]);
 
-  // LoadByPic Logic (FILTER PIC UTAMA)
+  // LoadByPic Logic
   const loadByPic = useMemo(() => {
     const load = {};
     data.forEach(p => {
@@ -572,7 +575,7 @@ export default function App() {
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
       
-      {/* Sidebar */}
+      {/* Sidebar (Desktop) */}
       <aside className="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl z-10">
         <div className="p-6 border-b border-slate-800">
           <h1 className="text-xl font-bold flex items-center gap-2 text-white">
@@ -657,10 +660,16 @@ export default function App() {
                                 <p className="text-[10px] text-slate-400 mt-1">Weighted Average GPM based on Value</p>
                             </div>
                             <div className="flex gap-2 bg-slate-100 p-1 rounded-lg">
-                                <button onClick={() => setProfitViewMode('pic')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'pic' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                                <button 
+                                    onClick={() => setProfitViewMode('pic')} 
+                                    className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'pic' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
                                     <Users size={14} /> By PIC
                                 </button>
-                                <button onClick={() => setProfitViewMode('owner')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'owner' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                                <button 
+                                    onClick={() => setProfitViewMode('owner')} 
+                                    className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'owner' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                >
                                     <Building2 size={14} /> By Owner
                                 </button>
                             </div>
@@ -684,7 +693,17 @@ export default function App() {
                         <div className="h-64 flex items-center justify-center">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
-                                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value" label={renderCustomizedLabel} labelLine={false}>
+                                    <Pie 
+                                        data={statusData} 
+                                        cx="50%" 
+                                        cy="50%" 
+                                        innerRadius={60} 
+                                        outerRadius={80} 
+                                        paddingAngle={2} 
+                                        dataKey="value" 
+                                        label={renderCustomizedLabel}
+                                        labelLine={false} // HILANGKAN GARIS DURI
+                                    >
                                         {statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                                     </Pie>
                                     <Tooltip />
@@ -729,7 +748,7 @@ export default function App() {
                 </div>
             )}
 
-            {/* Team Load View (FIXED LAYOUT) */}
+            {/* Team Load View */}
             {activeTab === 'team' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card className="p-6">
@@ -840,9 +859,11 @@ export default function App() {
                                     </p>
 
                                     <div className="flex items-end justify-between pt-3 border-t border-slate-100">
-                                        <div className="text-[10px] text-slate-500">
-                                            <div className="font-mono mb-0.5">BC: {formatCompactCurrency(project.barecost)}</div>
+                                        <div className="text-[10px] text-slate-500 flex flex-col gap-0.5">
+                                            <div className="font-mono">BC: {formatCompactCurrency(project.barecost)}</div>
                                             <div className="font-mono text-slate-700">Offer: {formatCompactCurrency(project.penawaran)}</div>
+                                            {/* NEW: Contract */}
+                                            <div className="font-mono text-blue-700">Cont: {formatCompactCurrency(project.kontrak)}</div>
                                         </div>
                                         <div className="text-right text-[10px] font-bold">
                                             <div className="text-emerald-600">GPM Offer: {formatPercent(project.gpm_offer_pct)}</div>
@@ -967,7 +988,11 @@ export default function App() {
                                         <th className="px-6 py-4">PIC Utama</th>
                                         <th className="px-6 py-4 text-right">Barecost</th>
                                         <th className="px-6 py-4 text-right">Penawaran</th>
+                                        {/* NEW: Contract */}
+                                        <th className="px-6 py-4 text-right">Kontrak</th>
                                         <th className="px-6 py-4 text-right">GPM Offer</th>
+                                        {/* NEW: GPM Contract */}
+                                        <th className="px-6 py-4 text-right">GPM Contract</th>
                                         <th className="px-6 py-4 text-center">Last Update</th>
                                         <th className="px-6 py-4 text-center">Status</th>
                                         <th className="px-6 py-4 text-center">Action</th>
@@ -1009,7 +1034,11 @@ export default function App() {
                                                 <th className="px-6 py-4">PIC Utama</th>
                                                 <th className="px-6 py-4 text-right">Barecost</th>
                                                 <th className="px-6 py-4 text-right">Penawaran</th>
+                                                {/* NEW: Contract */}
+                                                <th className="px-6 py-4 text-right">Kontrak</th>
                                                 <th className="px-6 py-4 text-right">GPM Offer</th>
+                                                {/* NEW: GPM Contract */}
+                                                <th className="px-6 py-4 text-right">GPM Contract</th>
                                                 <th className="px-6 py-4 text-center">Last Update</th>
                                                 <th className="px-6 py-4 text-center">Status</th>
                                                 <th className="px-6 py-4 text-center">Action</th>
