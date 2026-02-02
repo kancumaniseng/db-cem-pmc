@@ -27,11 +27,9 @@ import {
   Calendar, 
   Settings, 
   CheckCircle2, 
-  BarChart2, 
-  Menu, 
-  LogOut, 
   Lock, 
   Key, 
+  LogOut, 
   Sliders, 
   UserCheck
 } from 'lucide-react';
@@ -93,7 +91,7 @@ const checkIsDone = (status, progress) => {
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
+// Smart CSV Parser
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -179,7 +177,7 @@ const StatusProgressLabel = ({ text }) => {
 const LoadBadge = ({ status }) => {
     let color = "bg-emerald-100 text-emerald-700";
     if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
-    else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700";
+    else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700"; // Kuning Tua/Amber
     return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
@@ -196,9 +194,9 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
     </Card>
 );
 
-const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left" }) => (
+const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
     <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm`} 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
         onClick={() => onSort(sortKey)}
     >
       <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -209,8 +207,8 @@ const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left" }) =
 
 const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
     <tr className="hover:bg-slate-50/80 transition-colors group border-b border-slate-50 last:border-0">
-        <td className="px-6 py-4 font-medium text-slate-700 align-top">
-            <span className="block whitespace-normal leading-snug min-w-[200px]" title={project.project_name}>{project.project_name}</span>
+        <td className="px-6 py-4 font-medium text-slate-700 align-top sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+            <span className="block whitespace-normal leading-snug min-w-[200px] max-w-[300px]" title={project.project_name}>{project.project_name}</span>
             <div className="flex flex-wrap items-center mt-1">
                  <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1"><Building2 size={10} /> {project.owner}</div>
                  <StatusProgressLabel text={project.specific_status} />
@@ -246,7 +244,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 6.5 (Clean)</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 9.1 (Fixed Critical Filter)</p>
             </div>
         </div>
     );
@@ -270,6 +268,8 @@ export default function App() {
   const [filterOwner, setFilterOwner] = useState('All');
   const [filterPic, setFilterPic] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [filterProgressStatus, setFilterProgressStatus] = useState('All');
+
   const [sortConfig, setSortConfig] = useState({ key: 'last_update_date', direction: 'desc' });
   const [loadSettings, setLoadSettings] = useState(() => { try { return JSON.parse(localStorage.getItem('cost_dashboard_load_settings')) || { ongoingOver: 150, ongoingUnder: 80, totalOver: 200, totalUnder: 80 }; } catch { return { ongoingOver: 150, ongoingUnder: 80, totalOver: 200, totalUnder: 80 }; } });
   const [showLoadSettings, setShowLoadSettings] = useState(false);
@@ -300,9 +300,7 @@ export default function App() {
       const response = await fetch(`https://docs.google.com/spreadsheets/d/e/2PACX-1vSE4iCfy-ul3AvvtRn8crrMl-U8XTbcFQBdXSYTsEeMsUOfrzrmPH451fngepPaiT0wJ2RU11su9FD5/pub?output=csv&t=${Date.now()}`);
       if (!response.ok) throw new Error("Gagal");
       const csvText = await response.text();
-      
       const parsedRows = parseCSV(csvText);
-      
       if (parsedRows.length > 3) {
           const dataRows = parsedRows.slice(3); 
           const parsedData = dataRows.map((columns, index) => {
@@ -324,7 +322,6 @@ export default function App() {
               
               const colProgressText = clean(columns[10]); 
               const colComment = clean(columns[11]); 
-
               let progressVal = 0; const pctMatch = colProgressText.match(/(\d+(?:[.,]\d+)?)%/);
               if (pctMatch) progressVal = parseFloat(pctMatch[1].replace(',', '.'));
               else { const backupProgress = parseFloat(clean(columns[14]).replace(/%|,/g, '')); if (!isNaN(backupProgress)) progressVal = (backupProgress <= 1 && backupProgress > 0) ? backupProgress * 100 : backupProgress; }
@@ -334,18 +331,12 @@ export default function App() {
               let rawStatus = clean(columns[9]); 
               if (!rawStatus || rawStatus === "-") { if (progressVal >= 100) rawStatus = "Completed"; else if (progressVal > 0) rawStatus = "In Progress"; else rawStatus = "Planned"; }
               
-              const barecost = parseMoney(columns[16]); 
-              const penawaran = parseMoney(columns[17]); 
-              const kontrak = parseMoney(columns[18]); 
-              let gpm_offer_raw = parseMoney(columns[22]); 
-              let gpm_contract_raw = parseMoney(columns[23]); 
-              
+              const barecost = parseMoney(columns[16]); const penawaran = parseMoney(columns[17]); const kontrak = parseMoney(columns[18]); 
+              let gpm_offer_raw = parseMoney(columns[22]); let gpm_contract_raw = parseMoney(columns[23]); 
               let gpm_offer_pct = (gpm_offer_raw > 100 && penawaran > 0) ? (gpm_offer_raw/penawaran)*100 : (gpm_offer_raw <= 1 ? gpm_offer_raw*100 : gpm_offer_raw);
               let gpm_contract_pct = (gpm_contract_raw > 100 && kontrak > 0) ? (gpm_contract_raw/kontrak)*100 : (gpm_contract_raw <= 1 ? gpm_contract_raw*100 : gpm_contract_raw);
-              
               const specificStatus = clean(columns[14]); 
               const picSupport = [clean(columns[5]), clean(columns[6]), clean(columns[7])].filter(s => s && s !== "-" && s.length > 2).join(", ");
-              
               const tindakLanjut = colComment ? `${colProgressText}\n\n[Last Update]:\n${colComment}` : colProgressText;
 
               return {
@@ -440,8 +431,18 @@ export default function App() {
           const matchesOwner = filterOwner === 'All' || p.owner === filterOwner; 
           const matchesPic = filterPic === 'All' || p.pic === filterPic; 
           const matchesStatus = filterStatus === 'All' || p.status === filterStatus; 
-          const matchesActivePic = !activePicFilter || p.pic === activePicFilter; 
-          return matchesSearch && matchesOwner && matchesPic && matchesStatus && matchesActivePic; 
+          const matchesActivePic = !activePicFilter || p.pic === activePicFilter;
+          // STRICT FILTER FOR PROGRESS STATUS (Fixing "CRITICAL" showing "NEAR CRITICAL")
+          const matchesProgress = filterProgressStatus === 'All' || (() => {
+              const status = (p.specific_status || "").toUpperCase();
+              if (filterProgressStatus === 'CRITICAL') {
+                  // Explicitly exclude NEAR CRITICAL when filtering for CRITICAL
+                  return status.includes('CRITICAL') && !status.includes('NEAR');
+              }
+              return status.includes(filterProgressStatus);
+          })();
+          
+          return matchesSearch && matchesOwner && matchesPic && matchesStatus && matchesActivePic && matchesProgress; 
       }); 
       filtered.sort((a, b) => { 
           let valA = a[sortConfig.key]; let valB = b[sortConfig.key];
@@ -451,7 +452,7 @@ export default function App() {
           if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1; if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1; return 0; 
       }); 
       return filtered; 
-  }, [data, searchQuery, filterOwner, filterPic, filterStatus, activePicFilter, sortConfig]);
+  }, [data, searchQuery, filterOwner, filterPic, filterStatus, filterProgressStatus, activePicFilter, sortConfig]);
   
   const activeProjectsList = useMemo(() => filteredProjects.filter(p => !checkIsDone(p.status, p.progress)), [filteredProjects]);
   const doneProjectsList = useMemo(() => filteredProjects.filter(p => checkIsDone(p.status, p.progress)), [filteredProjects]);
@@ -459,12 +460,28 @@ export default function App() {
   const uniqueOwners = useMemo(() => ['All', ...new Set(data.map(d => d.owner).filter(o => o && o.toLowerCase() !== 'owner').sort())], [data]);
   const uniquePics = useMemo(() => ['All', ...new Set(data.map(d => d.pic).filter(p => p && !p.toLowerCase().includes('pic utama') && !p.toLowerCase().includes('pic support')).sort())], [data]);
   const uniqueStatuses = useMemo(() => ['All', ...new Set(data.map(d => d.status).filter(s => s && !s.toLowerCase().includes('status')).sort())], [data]);
+  const uniqueProgressStatuses = ['All', 'CRITICAL', 'OVERDUE', 'NEAR CRITICAL'];
 
   const menuItems = useMemo(() => {
     const base = [{ id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard }, { id: 'projects', label: 'List Pekerjaan', icon: FileText }];
     if (auth.role === 'admin') { base.push({ id: 'team', label: 'Load Tim (PIC)', icon: Users }); base.push({ id: 'owners', label: 'List Owner', icon: Building2 }); base.push({ id: 'settings', label: 'Master Settings', icon: Settings }); }
     return base;
   }, [auth.role]);
+
+  // --- REUSABLE HEADER CELL ---
+  const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
+      <th 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
+        onClick={() => onSort(sortKey)}
+      >
+        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
+          {label}
+          <div className={`flex flex-col text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`}>
+             <ArrowUpDown size={12} />
+          </div>
+        </div>
+      </th>
+  );
 
   if (isAuthChecking) return null;
   if (!auth.isAuth) return <LoginScreen onLogin={handleLogin} currentPasswords={passwords} />;
@@ -495,6 +512,7 @@ export default function App() {
             </button>
         </div>
       </aside>
+      
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
             <div>
@@ -591,12 +609,20 @@ export default function App() {
             {activeTab === 'projects' && (
                 <div className="space-y-6">
                     <Card className="overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 items-center"><div className="flex items-center gap-2 mr-2"><Filter size={16} className="text-slate-400" /><span className="text-xs font-semibold text-slate-600">Filters:</span></div>{['Owner', 'PIC', 'Status'].map(filterType => { const val = filterType === 'Owner' ? filterOwner : filterType === 'PIC' ? filterPic : filterStatus; const setVal = filterType === 'Owner' ? setFilterOwner : filterType === 'PIC' ? setFilterPic : setFilterStatus; const opts = filterType === 'Owner' ? uniqueOwners : filterType === 'PIC' ? uniquePics : uniqueStatuses; return (<div key={filterType} className="flex items-center gap-2"><span className="text-xs text-slate-500">{filterType}:</span><select className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-emerald-500 bg-white" value={val} onChange={(e) => setVal(e.target.value)}>{opts.map(o => <option key={o} value={o}>{o}</option>)}</select></div>); })}{(filterOwner !== 'All' || filterPic !== 'All' || filterStatus !== 'All') && <button onClick={() => { setFilterOwner('All'); setFilterPic('All'); setFilterStatus('All'); }} className="text-xs text-red-500 hover:text-red-700 ml-auto border border-red-200 px-2 py-0.5 rounded bg-white">Reset</button>}</div>
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 items-center"><div className="flex items-center gap-2 mr-2"><Filter size={16} className="text-slate-400" /><span className="text-xs font-semibold text-slate-600">Filters:</span></div>{['Owner', 'PIC', 'Status', 'Status Progress'].map(filterType => { 
+                                const val = filterType === 'Owner' ? filterOwner : filterType === 'PIC' ? filterPic : filterType === 'Status' ? filterStatus : filterProgressStatus; 
+                                const setVal = filterType === 'Owner' ? setFilterOwner : filterType === 'PIC' ? setFilterPic : filterType === 'Status' ? setFilterStatus : setFilterProgressStatus; 
+                                const opts = filterType === 'Owner' ? uniqueOwners : filterType === 'PIC' ? uniquePics : filterType === 'Status' ? uniqueStatuses : uniqueProgressStatuses; 
+                                return (<div key={filterType} className="flex items-center gap-2"><span className="text-xs text-slate-500">{filterType}:</span><select className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-emerald-500 bg-white" value={val} onChange={(e) => setVal(e.target.value)}>{opts.map(o => <option key={o} value={o}>{o}</option>)}</select></div>); 
+                            })}
+                            {(filterOwner !== 'All' || filterPic !== 'All' || filterStatus !== 'All' || filterProgressStatus !== 'All') && <button onClick={() => { setFilterOwner('All'); setFilterPic('All'); setFilterStatus('All'); setFilterProgressStatus('All'); }} className="text-xs text-red-500 hover:text-red-700 ml-auto border border-red-200 px-2 py-0.5 rounded bg-white">Reset</button>}</div>
                         <div className="overflow-x-auto">
                             <div className="max-h-[70vh] overflow-auto">
                                 <table className="w-full text-sm text-left text-slate-600 relative">
                                     <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider z-20">
-                                        <tr><SortableHeader label="Nama Pekerjaan" sortKey="project_name" currentSort={sortConfig} onSort={requestSort}/><SortableHeader label="PIC" sortKey="pic" currentSort={sortConfig} onSort={requestSort}/><SortableHeader label="Barecost" sortKey="barecost" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Penawaran" sortKey="penawaran" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Kontrak" sortKey="kontrak" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="GPM Offer" sortKey="gpm_offer_pct" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="GPM Cont" sortKey="gpm_contract_pct" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Update" sortKey="last_update_date" currentSort={sortConfig} onSort={requestSort} align="center"/><SortableHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={requestSort} align="center"/><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th></tr>
+                                        <tr>
+                                            <SortableHeader label="Nama Pekerjaan" sortKey="project_name" currentSort={sortConfig} onSort={requestSort} stickyLeft={true} /><SortableHeader label="PIC" sortKey="pic" currentSort={sortConfig} onSort={requestSort}/><SortableHeader label="Barecost" sortKey="barecost" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Penawaran" sortKey="penawaran" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Kontrak" sortKey="kontrak" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="GPM Offer" sortKey="gpm_offer_pct" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="GPM Cont" sortKey="gpm_contract_pct" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Update" sortKey="last_update_date" currentSort={sortConfig} onSort={requestSort} align="center"/><SortableHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={requestSort} align="center"/><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
+                                        </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">{activeProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody>
                                 </table>
@@ -606,7 +632,18 @@ export default function App() {
                     <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
                         <button onClick={() => setIsDoneListOpen(!isDoneListOpen)} className="w-full flex items-center justify-between p-4 bg-slate-100 hover:bg-slate-200 transition-colors"><div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-emerald-500" /><span className="font-bold text-slate-700 text-xs">Pekerjaan Selesai</span></div>{isDoneListOpen ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}</button>
                         {isDoneListOpen && (
-                            <div className="overflow-x-auto border-t border-slate-100"><div className="max-h-[70vh] overflow-auto"><table className="w-full text-sm text-left text-slate-600 relative"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider z-20"><tr><th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">Judul Pekerjaan</th><th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">PIC Utama</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Barecost</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Penawaran</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Kontrak</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Offer</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Contract</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Last Update</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Status</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th></tr></thead><tbody className="divide-y divide-slate-100 bg-slate-50/20">{doneProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody></table></div></div>
+                            <div className="overflow-x-auto border-t border-slate-100">
+                                <div className="max-h-[70vh] overflow-auto">
+                                    <table className="w-full text-sm text-left text-slate-600 relative">
+                                        <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider z-20">
+                                            <tr>
+                                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">Judul Pekerjaan</th><th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">PIC Utama</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Barecost</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Penawaran</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Kontrak</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Offer</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Contract</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Last Update</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Status</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 bg-slate-50/20">{doneProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody>
+                                    </table>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -617,25 +654,102 @@ export default function App() {
                 <Card className="overflow-hidden">
                     <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-lg text-slate-700">List Owner & Portofolio</h3><div className="text-xs text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-200">Total {loadByOwner.length} Active Owners</div></div>
                     <div className="overflow-x-auto min-h-[500px]">
-                        <table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider"><tr><th className="px-6 py-4 w-12 text-center">No</th><th className="px-6 py-4">Nama Owner</th><th className="px-6 py-4 text-center">Jumlah Proyek</th><th className="px-6 py-4 text-right">Total Nilai Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Kontrak</th></tr></thead>
-                        <tbody className="divide-y divide-slate-100">{loadByOwner.map((owner, idx) => { const ownerProjects = data.filter(p => p.owner === owner.name); const totalOwnerVal = ownerProjects.reduce((acc, curr) => acc + curr.penawaran, 0); const totalOwnerGPMVal = ownerProjects.reduce((acc, curr) => acc + curr.gpm_offer_val, 0); const avgOwnerGPM = totalOwnerVal > 0 ? (totalOwnerGPMVal / totalOwnerVal) * 100 : 0; const totalOwnerContractVal = ownerProjects.reduce((acc, curr) => acc + curr.kontrak, 0); const totalOwnerGPMContractVal = ownerProjects.reduce((acc, curr) => acc + curr.gpm_contract_val, 0); const avgOwnerContractGPM = totalOwnerContractVal > 0 ? (totalOwnerGPMContractVal / totalOwnerContractVal) * 100 : 0; return (<tr key={idx} className="hover:bg-slate-50/50 transition-colors group"><td className="px-6 py-4 text-center text-slate-400">{idx + 1}</td><td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={16}/></div>{owner.name}</td><td className="px-6 py-4 text-center"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-xs">{owner.count}</span></td><td className="px-6 py-4 text-right font-mono text-slate-700">{formatCurrency(owner.value)}</td><td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td><td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td></tr>); })}</tbody></table>
+                        <table className="w-full text-sm text-left text-slate-600">
+                            <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider">
+                                <tr><th className="px-6 py-4 w-12 text-center">No</th><th className="px-6 py-4">Nama Owner</th><th className="px-6 py-4 text-center">Jumlah Proyek</th><th className="px-6 py-4 text-right">Total Nilai Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Kontrak</th></tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {loadByOwner.map((owner, idx) => { 
+                                    const ownerProjects = data.filter(p => p.owner === owner.name); 
+                                    const totalOwnerVal = ownerProjects.reduce((acc, curr) => acc + curr.penawaran, 0); 
+                                    const totalOwnerGPMVal = ownerProjects.reduce((acc, curr) => acc + curr.gpm_offer_val, 0); 
+                                    const avgOwnerGPM = totalOwnerVal > 0 ? (totalOwnerGPMVal / totalOwnerVal) * 100 : 0; 
+                                    const totalOwnerContractVal = ownerProjects.reduce((acc, curr) => acc + curr.kontrak, 0); 
+                                    const totalOwnerGPMContractVal = ownerProjects.reduce((acc, curr) => acc + curr.gpm_contract_val, 0); 
+                                    const avgOwnerContractGPM = totalOwnerContractVal > 0 ? (totalOwnerGPMContractVal / totalOwnerContractVal) * 100 : 0; 
+                                    return (
+                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="px-6 py-4 text-center text-slate-400">{idx + 1}</td>
+                                            <td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={16}/></div>{owner.name}</td>
+                                            <td className="px-6 py-4 text-center"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-xs">{owner.count}</span></td>
+                                            <td className="px-6 py-4 text-right font-mono text-slate-700">{formatCurrency(owner.value)}</td>
+                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td>
+                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td>
+                                        </tr>
+                                    ); 
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 </Card>
             )}
 
-            {/* 7. SETTINGS TAB */}
+            {/* 7. MASTER SETTINGS (ADMIN ONLY) */}
             {activeTab === 'settings' && auth.role === 'admin' && (
-                <div className="max-w-2xl mx-auto mt-10"><Card className="p-8"><div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100"><div className="bg-slate-100 p-3 rounded-full"><Key size={24} className="text-slate-700"/></div><div><h3 className="font-bold text-xl text-slate-800">Master Password Settings</h3><p className="text-sm text-slate-500">Kelola akses keamanan untuk dashboard</p></div></div><div className="space-y-6"><div><label className="block text-sm font-bold text-slate-700 mb-2">Admin Password</label><input type="text" className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={adminPassInput} onChange={(e) => setAdminPassInput(e.target.value)} /><p className="text-[10px] text-slate-400 mt-1">Akses penuh ke semua fitur termasuk menu ini.</p></div><div><label className="block text-sm font-bold text-slate-700 mb-2">Guest Password</label><input type="text" className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={guestPassInput} onChange={(e) => setGuestPassInput(e.target.value)} /><p className="text-[10px] text-slate-400 mt-1">Akses terbatas (Hanya Dashboard & List Project).</p></div><div className="pt-4 flex items-center justify-between"><span className="text-sm font-bold text-emerald-600">{passSaveStatus}</span><button onClick={handleSavePasswords} className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center gap-2"><Save size={18}/> Simpan Perubahan</button></div></div></Card></div>
+                <div className="max-w-2xl mx-auto mt-10">
+                    <Card className="p-8">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100"><div className="bg-slate-100 p-3 rounded-full"><Key size={24} className="text-slate-700"/></div><div><h3 className="font-bold text-xl text-slate-800">Master Password Settings</h3><p className="text-sm text-slate-500">Kelola akses keamanan untuk dashboard</p></div></div>
+                        <div className="space-y-6">
+                            <div><label className="block text-sm font-bold text-slate-700 mb-2">Admin Password</label><input type="text" className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={adminPassInput} onChange={(e) => setAdminPassInput(e.target.value)} /><p className="text-[10px] text-slate-400 mt-1">Akses penuh ke semua fitur termasuk menu ini.</p></div>
+                            <div><label className="block text-sm font-bold text-slate-700 mb-2">Guest Password</label><input type="text" className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={guestPassInput} onChange={(e) => setGuestPassInput(e.target.value)} /><p className="text-[10px] text-slate-400 mt-1">Akses terbatas (Hanya Dashboard & List Project).</p></div>
+                            <div className="pt-4 flex items-center justify-between"><span className="text-sm font-bold text-emerald-600">{passSaveStatus}</span><button onClick={handleSavePasswords} className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center gap-2"><Save size={18}/> Simpan Perubahan</button></div>
+                        </div>
+                    </Card>
+                </div>
             )}
         </div>
-
-        {/* MOBILE NAV */}
+        
+        {/* Mobile Navigation */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex justify-around shadow-2xl z-50">{menuItems.filter(m => m.id !== 'settings').map(item => (<button key={item.id} onClick={() => { setActiveTab(item.id); setActivePicFilter(null); }} className={`flex flex-col items-center ${activeTab === item.id ? 'text-emerald-600' : 'text-slate-400'}`}><item.icon size={20} /><span className="text-[9px] font-bold uppercase mt-1">{item.id === 'team' ? 'Load' : item.id}</span></button>))}</div>
       </main>
 
-      {/* MODAL */}
+      {/* Modal Notes */}
       {selectedProjectForNotes && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-200"><div className="p-4 border-b flex justify-between items-center bg-slate-50"><div className="pr-8"><h3 className="font-bold text-slate-800 flex items-center gap-2">Notes & Tindak Lanjut</h3><p className="text-[11px] text-slate-500 mt-1 leading-tight">{selectedProjectForNotes.project_name}</p></div><button onClick={() => setSelectedProjectForNotes(null)} className="text-slate-400 p-1 hover:bg-slate-200 rounded-full flex-shrink-0"><X size={20} /></button></div><div className="p-4 h-[450px] overflow-y-auto space-y-4 bg-slate-50/50"><div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm"><h4 className="text-xs font-black text-blue-700 mb-2 flex items-center gap-1 uppercase tracking-wider"><MessageSquare size={12}/> Update Terakhir</h4><div className="flex justify-between items-center text-[10px] mt-2 font-bold text-slate-500 uppercase"><span>{formatDate(selectedProjectForNotes.last_update_date)}</span><Badge status={selectedProjectForNotes.status} /></div><p className="text-sm text-slate-700 italic mt-2 leading-relaxed bg-white/50 p-2 rounded border border-blue-50 whitespace-pre-wrap">{selectedProjectForNotes.tindak_lanjut || "Tidak ada catatan"}</p></div><div className="border-t border-slate-200 my-2 relative"><span className="absolute -top-2.5 left-4 bg-slate-50 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual History</span></div>{(!notes[selectedProjectForNotes.project_name] || notes[selectedProjectForNotes.project_name].length === 0) ? (<div className="text-center text-slate-300 py-8"><FileText size={48} className="mx-auto opacity-10 mb-2"/><p className="text-xs font-bold uppercase tracking-widest">Belum ada history</p></div>) : (notes[selectedProjectForNotes.project_name].map((note) => (<div key={note.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm group hover:border-emerald-200 transition-all"><div className="flex justify-between items-start mb-1 text-[9px] text-slate-400 font-bold"><span>{note.time}</span>{auth.role === 'admin' && (<div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => startEditingNote(note)} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={12} /></button><button onClick={() => handleDeleteNote(note.id)} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={12} /></button></div>)}</div>{editingNoteId === note.id ? (<div className="flex gap-2"><input type="text" className="flex-1 text-sm border-b-2 border-blue-400 outline-none p-1" value={editingText} onChange={(e) => setEditingText(e.target.value)} autoFocus /><button onClick={() => saveEditedNote(note.id)}><Save size={16} className="text-emerald-600"/></button></div>) : (<p className="text-sm text-slate-700 leading-relaxed">{note.text}</p>)}</div>)))}</div><div className="p-4 border-t bg-white"><div className="flex gap-2"><input type="text" className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-inner" placeholder="Tulis update tambahan..." value={newNote} onChange={(e) => setNewNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddNote()} /><button onClick={handleAddNote} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-200 flex items-center gap-2"><Plus size={18} /> ADD</button></div></div></div></div>)}
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-200">
+                <div className="p-4 border-b flex justify-between items-center bg-slate-50">
+                    <div className="pr-8"><h3 className="font-bold text-slate-800 flex items-center gap-2">Notes & Tindak Lanjut</h3><p className="text-[11px] text-slate-500 mt-1 leading-tight">{selectedProjectForNotes.project_name}</p></div>
+                    <button onClick={() => setSelectedProjectForNotes(null)} className="text-slate-400 p-1 hover:bg-slate-200 rounded-full flex-shrink-0"><X size={20} /></button>
+                </div>
+                <div className="p-4 h-[450px] overflow-y-auto space-y-4 bg-slate-50/50">
+                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
+                        <h4 className="text-xs font-black text-blue-700 mb-2 flex items-center gap-1 uppercase tracking-wider"><MessageSquare size={12}/> Update Terakhir</h4>
+                        <div className="flex justify-between items-center text-[10px] mt-2 font-bold text-slate-500 uppercase"><span>{formatDate(selectedProjectForNotes.last_update_date)}</span><Badge status={selectedProjectForNotes.status} /></div>
+                        <p className="text-sm text-slate-700 italic mt-2 leading-relaxed bg-white/50 p-2 rounded border border-blue-50 whitespace-pre-wrap">{selectedProjectForNotes.tindak_lanjut || "Tidak ada catatan"}</p>
+                    </div>
+                    <div className="border-t border-slate-200 my-2 relative"><span className="absolute -top-2.5 left-4 bg-slate-50 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual History</span></div>
+                    {(!notes[selectedProjectForNotes.project_name] || notes[selectedProjectForNotes.project_name].length === 0) ? (
+                        <div className="text-center text-slate-300 py-8"><FileText size={48} className="mx-auto opacity-10 mb-2"/><p className="text-xs font-bold uppercase tracking-widest">Belum ada history</p></div>
+                    ) : (
+                        notes[selectedProjectForNotes.project_name].map((note) => (
+                            <div key={note.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm group hover:border-emerald-200 transition-all">
+                                <div className="flex justify-between items-start mb-1 text-[9px] text-slate-400 font-bold">
+                                    <span>{note.time}</span>
+                                    {auth.role === 'admin' && (
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => startEditingNote(note)} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={12} /></button>
+                                            <button onClick={() => handleDeleteNote(note.id)} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={12} /></button>
+                                        </div>
+                                    )}
+                                </div>
+                                {editingNoteId === note.id ? (
+                                    <div className="flex gap-2"><input type="text" className="flex-1 text-sm border-b-2 border-blue-400 outline-none p-1" value={editingText} onChange={(e) => setEditingText(e.target.value)} autoFocus /><button onClick={() => saveEditedNote(note.id)}><Save size={16} className="text-emerald-600"/></button></div>
+                                ) : (
+                                    <p className="text-sm text-slate-700 leading-relaxed">{note.text}</p>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+                <div className="p-4 border-t bg-white">
+                    <div className="flex gap-2">
+                        <input type="text" className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-inner" placeholder="Tulis update tambahan..." value={newNote} onChange={(e) => setNewNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddNote()} />
+                        <button onClick={handleAddNote} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-200 flex items-center gap-2"><Plus size={18} /> ADD</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }
