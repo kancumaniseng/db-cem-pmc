@@ -1,15 +1,70 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  LayoutDashboard, Users, TrendingUp, AlertCircle, Plus, Trash2, X, FileText, Search, DollarSign, Briefcase, Clock, ChevronRight, ChevronDown, ChevronUp, Wallet, Building2, Filter, Eye, Edit2, Save, MessageSquare, RefreshCw, ArrowUpDown, Calendar, Settings, CheckCircle2, Lock, Key, LogOut, Sliders, UserCheck
+  LayoutDashboard, 
+  Users, 
+  TrendingUp, 
+  AlertCircle, 
+  Plus, 
+  Trash2, 
+  X, 
+  FileText, 
+  Search, 
+  DollarSign, 
+  Briefcase, 
+  Clock, 
+  ChevronRight, 
+  ChevronDown, 
+  ChevronUp, 
+  Wallet, 
+  Building2, 
+  Filter, 
+  Eye, 
+  Edit2, 
+  Save, 
+  MessageSquare, 
+  RefreshCw, 
+  ArrowUpDown, 
+  Calendar, 
+  Settings, 
+  CheckCircle2, 
+  BarChart2, 
+  Menu, 
+  LogOut, 
+  Lock, 
+  Key, 
+  Sliders, 
+  UserCheck
 } from 'lucide-react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ReferenceLine
 } from 'recharts';
 
 // --- 1. KONFIGURASI ---
-const DEFAULT_PASSWORDS = { admin: "admincost2026", guest: "guestonly" };
-const LOAD_LIMITS = { LOW: 2, HIGH: 6 };
-const COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED', '#DB2777', '#0891B2', '#4F46E5', '#65A30D', '#9333EA', '#EA580C', '#0D9488', '#64748B'];
+const DEFAULT_PASSWORDS = {
+    admin: "admincost2026",
+    guest: "guestonly"
+};
+
+const LOAD_LIMITS = {
+    LOW: 2,   
+    HIGH: 6
+};
+
+const COLORS = [
+  '#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED', '#DB2777', 
+  '#0891B2', '#4F46E5', '#65A30D', '#9333EA', '#EA580C', '#0D9488', '#64748B'
+];
 
 // --- 2. FUNGSI PEMBANTU ---
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val || 0);
@@ -91,7 +146,11 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 
 // --- 3. KOMPONEN UI ---
 
-const Card = ({ children, className = "" }) => <div className={`bg-white rounded-xl shadow-sm border border-slate-200 relative ${className}`}>{children}</div>;
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 relative ${className}`}>
+    {children}
+  </div>
+);
 
 const Badge = ({ status }) => {
   const st = (status || "").toLowerCase().trim();
@@ -187,7 +246,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 7.1 (Fixed & Stable)</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 6.5 (Clean)</p>
             </div>
         </div>
     );
@@ -242,36 +301,33 @@ export default function App() {
       if (!response.ok) throw new Error("Gagal");
       const csvText = await response.text();
       
-      // Gunakan SMART PARSER
       const parsedRows = parseCSV(csvText);
       
       if (parsedRows.length > 3) {
-          const dataRows = parsedRows.slice(3); // Skip header rows
+          const dataRows = parsedRows.slice(3); 
           const parsedData = dataRows.map((columns, index) => {
-              if (columns.length < 5) return null; // Skip empty rows
+              if (columns.length < 5) return null; 
 
               const clean = (val) => val ? val.trim().replace(/^"|"$/g, '') : "";
               const projName = clean(columns[1]);
 
-              // --- FILTER SAMPAH KETAT (GARBAGE COLLECTOR) ---
               if (projName.toUpperCase() === 'JUDUL PEKERJAAN') return null;
               if (projName.toLowerCase().includes('total') || projName.toLowerCase().includes('jumlah')) return null;
               if (!projName) return null;
               if (!isNaN(parseFloat(projName)) && isFinite(projName)) return null;
 
-              const picName = clean(columns[4]); // Col E (Index 4)
+              const picName = clean(columns[4]); 
               if (!isNaN(parseFloat(picName)) && isFinite(picName)) return null;
               if (picName.includes('%')) return null;
 
               const parseMoney = (val) => { if (!val) return 0; let cleanStr = val.replace(/Rp|rp|\s/g, ''); if (cleanStr.includes('.') && cleanStr.includes(',')) cleanStr = cleanStr.replace(/\./g, '').replace(',', '.'); else if (cleanStr.match(/\.\d{3}/) && !cleanStr.includes(',')) cleanStr = cleanStr.replace(/\./g, ''); else if (cleanStr.includes(',')) cleanStr = cleanStr.replace(/,/g, ''); return parseFloat(cleanStr) || 0; };
               
               const colProgressText = clean(columns[10]); 
-              const colComment = clean(columns[11]); // Column L
+              const colComment = clean(columns[11]); 
 
               let progressVal = 0; const pctMatch = colProgressText.match(/(\d+(?:[.,]\d+)?)%/);
               if (pctMatch) progressVal = parseFloat(pctMatch[1].replace(',', '.'));
               else { const backupProgress = parseFloat(clean(columns[14]).replace(/%|,/g, '')); if (!isNaN(backupProgress)) progressVal = (backupProgress <= 1 && backupProgress > 0) ? backupProgress * 100 : backupProgress; }
-              
               const parseDateFromText = (text) => { if (!text) return null; let match = text.trim().match(/^(\d{2})[\.\-\/](\d{2})[\.\-\/](\d{2,4})/); if (!match) match = text.trim().match(/^(\d{2})(\d{2})(\d{2})/); if (match) { let year = parseInt(match[3]); if (year < 100) year += 2000; return new Date(year, parseInt(match[2]) - 1, parseInt(match[1])); } return null; };
               const lastUpdateDate = parseDateFromText(colProgressText);
               
@@ -290,7 +346,6 @@ export default function App() {
               const specificStatus = clean(columns[14]); 
               const picSupport = [clean(columns[5]), clean(columns[6]), clean(columns[7])].filter(s => s && s !== "-" && s.length > 2).join(", ");
               
-              // Combined Tindak Lanjut
               const tindakLanjut = colComment ? `${colProgressText}\n\n[Last Update]:\n${colComment}` : colProgressText;
 
               return {
@@ -411,33 +466,50 @@ export default function App() {
     return base;
   }, [auth.role]);
 
-  // --- REUSABLE HEADER CELL ---
-  const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left" }) => (
-      <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm`} 
-        onClick={() => onSort(sortKey)}
-      >
-        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
-          {label}
-          <div className={`flex flex-col text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`}>
-             <ArrowUpDown size={12} />
-          </div>
-        </div>
-      </th>
-  );
-
   if (isAuthChecking) return null;
   if (!auth.isAuth) return <LoginScreen onLogin={handleLogin} currentPasswords={passwords} />;
   if (loading && !data.length) return <div className="h-screen w-full flex items-center justify-center bg-slate-50 text-slate-500 font-medium animate-pulse">Memuat Data...</div>;
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
-      <aside className="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl z-10"><div className="p-6 border-b border-slate-800"><h1 className="text-xl font-bold flex items-center gap-2 text-white"><Briefcase className="text-emerald-400" /> Cost Control</h1><p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{auth.role === 'admin' ? 'Administrator' : 'Guest Mode'}</p></div><nav className="flex-1 p-4 space-y-2">{menuItems.map(item => (<button key={item.id} onClick={() => { setActiveTab(item.id); setActivePicFilter(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${activeTab === item.id ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}><item.icon size={18} /><span className="font-medium text-sm capitalize">{item.label}</span></button>))}</nav><div className="p-4 bg-slate-950 text-xs text-slate-500 border-t border-slate-800 space-y-3"><div><p className="font-semibold text-slate-400 mb-1">Last Sync:</p><p className="font-mono text-[10px] text-emerald-500">{lastSync ? lastSync.toLocaleString('id-ID') : '-'}</p></div><button onClick={handleLogout} className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors w-full pt-2 border-t border-slate-800"><LogOut size={14} /> Logout</button></div></aside>
+      <aside className="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl z-10">
+        <div className="p-6 border-b border-slate-800">
+          <h1 className="text-xl font-bold flex items-center gap-2 text-white"><Briefcase className="text-emerald-400" /> Cost Control</h1>
+          <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{auth.role === 'admin' ? 'Administrator' : 'Guest Mode'}</p>
+        </div>
+        <nav className="flex-1 p-4 space-y-2">
+          {menuItems.map(item => (
+            <button key={item.id} onClick={() => { setActiveTab(item.id); setActivePicFilter(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${activeTab === item.id ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                <item.icon size={18} />
+                <span className="font-medium text-sm capitalize">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="p-4 bg-slate-950 text-xs text-slate-500 border-t border-slate-800 space-y-3">
+            <div>
+                <p className="font-semibold text-slate-400 mb-1">Last Sync:</p>
+                <p className="font-mono text-[10px] text-emerald-500">{lastSync ? lastSync.toLocaleString('id-ID') : '-'}</p>
+            </div>
+            <button onClick={handleLogout} className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors w-full pt-2 border-t border-slate-800">
+                <LogOut size={14} /> Logout
+            </button>
+        </div>
+      </aside>
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10"><div><h2 className="text-lg font-bold text-slate-800 capitalize">{activeTab.replace('_', ' ')} Overview</h2>{activePicFilter && <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full flex items-center gap-1 w-fit mt-1">Filtering: {activePicFilter} <button onClick={() => setActivePicFilter(null)}><X size={10}/></button></span>}</div><div className="flex items-center gap-4"><button onClick={() => fetchData(true)} className={`p-2 text-slate-500 hover:text-emerald-600 hover:bg-slate-100 rounded-full transition-all ${refreshing ? 'animate-spin text-emerald-600' : ''}`} title="Refresh Data"><RefreshCw size={18} /></button><div className="relative group hidden sm:block"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder="Search..." className="pl-10 pr-4 py-2 bg-slate-100 border border-transparent rounded-full text-sm focus:bg-white focus:border-emerald-500 w-64 outline-none transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div><button onClick={handleLogout} className="md:hidden text-slate-400"><LogOut size={18}/></button></div></header>
-        
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
+            <div>
+                <h2 className="text-lg font-bold text-slate-800 capitalize">{activeTab.replace('_', ' ')} Overview</h2>
+                {activePicFilter && <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full flex items-center gap-1 w-fit mt-1">Filtering: {activePicFilter} <button onClick={() => setActivePicFilter(null)}><X size={10}/></button></span>}
+            </div>
+            <div className="flex items-center gap-4">
+                <button onClick={() => fetchData(true)} className={`p-2 text-slate-500 hover:text-emerald-600 hover:bg-slate-100 rounded-full transition-all ${refreshing ? 'animate-spin text-emerald-600' : ''}`} title="Refresh Data"><RefreshCw size={18} /></button>
+                <div className="relative group hidden sm:block"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} /><input type="text" placeholder="Search..." className="pl-10 pr-4 py-2 bg-slate-100 border border-transparent rounded-full text-sm focus:bg-white focus:border-emerald-500 w-64 outline-none transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+                <button onClick={handleLogout} className="md:hidden text-slate-400"><LogOut size={18}/></button>
+            </div>
+        </header>
+
         <div className="flex-1 overflow-auto p-6 bg-slate-50/50 pb-24 md:pb-6">
-            {/* 1. DASHBOARD OR TEAM VIEW */}
+            {/* KPI CARDS */}
             {(activeTab === 'dashboard' || activeTab === 'team') && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <KPICard title="Total Barecost" value={formatCompactCurrency(stats.totalBarecost)} icon={Wallet} colorClass="border-slate-500" />
@@ -455,7 +527,7 @@ export default function App() {
             </div>
             )}
 
-            {/* 2. DASHBOARD MAIN VIEW */}
+            {/* DASHBOARD TAB */}
             {activeTab === 'dashboard' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-6">
@@ -467,13 +539,13 @@ export default function App() {
                         <div className="h-64 flex items-center justify-center"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value" label={renderCustomizedLabel} labelLine={false}>{statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /><Legend verticalAlign="bottom" height={80} iconType="circle" wrapperStyle={{fontSize: '10px'}} layout="horizontal" /></PieChart></ResponsiveContainer></div>
                     </Card>
                     <Card className="lg:col-span-3 overflow-hidden">
-                        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-slate-700">Proyek Terbaru</h3><button onClick={() => setActiveTab('projects')} className="text-emerald-600 text-sm font-medium hover:text-emerald-700 flex items-center gap-1">Lihat Semua <ChevronRight size={16}/></button></div>
+                        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-slate-700">Update Proyek Terbaru</h3><button onClick={() => setActiveTab('projects')} className="text-emerald-600 text-sm font-medium hover:text-emerald-700 flex items-center gap-1">Lihat Semua <ChevronRight size={16}/></button></div>
                         <div className="overflow-x-auto"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider"><tr><th className="px-6 py-3">Nama Pekerjaan</th><th className="px-6 py-4">PIC</th><th className="px-6 py-4">Owner</th><th className="px-6 py-4 text-right">Barecost</th><th className="px-6 py-4 text-right">Penawaran</th><th className="px-6 py-3 text-center">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{[...data].sort((a,b) => (b.last_update_date || 0) - (a.last_update_date || 0)).slice(0,5).map((project) => (<tr key={project.id} className="hover:bg-slate-50/80 transition-colors"><td className="px-6 py-3 font-medium text-slate-700"><span className="block whitespace-normal leading-snug min-w-[200px]" title={project.project_name}>{project.project_name}</span><div className="flex flex-wrap items-center mt-1"><div className="text-[10px] text-slate-400 font-normal flex items-center gap-1"><Building2 size={10} /> {project.owner}</div><StatusProgressLabel text={project.specific_status} /></div></td><td className="px-6 py-3 text-xs">{project.pic}</td><td className="px-6 py-3">{project.owner}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.barecost)}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.penawaran)}</td><td className="px-6 py-3 text-center"><Badge status={project.status} /></td></tr>))}</tbody></table></div>
                     </Card>
                 </div>
             )}
 
-            {/* 3. TEAM LOAD VIEW */}
+            {/* 3. TEAM LOAD TAB */}
             {activeTab === 'team' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card className="p-6">
@@ -496,7 +568,7 @@ export default function App() {
                 </div>
             )}
             
-            {/* 4. TEAM BREAKDOWN (Shown when Team Tab Active) */}
+            {/* 4. BREAKDOWN TEAM */}
             {activeTab === 'team' && (
                 <div className="mt-8">
                      <div className="flex items-center justify-between mb-4"><h3 className="font-bold text-slate-700">Breakdown Proyek {activePicFilter ? `(${activePicFilter})` : ''}</h3>{activePicFilter && <button onClick={() => setActivePicFilter(null)} className="text-xs text-red-500 hover:text-red-700 border border-red-200 px-3 py-1 rounded-full bg-red-50">Reset Filter</button>}</div>
@@ -508,46 +580,23 @@ export default function App() {
                                 <div className="flex items-center gap-1 text-[10px] text-slate-500 mb-1 font-medium" title="PIC Utama"><Users size={12} className="text-blue-500" /> <span className="truncate">{project.pic}</span></div>
                                 {project.pic_support && project.pic_support !== '-' && (<div className="flex items-start gap-1 text-[10px] text-slate-400 mb-2" title="PIC Support"><UserCheck size={12} className="text-indigo-400 mt-0.5" /> <span className="leading-tight">{project.pic_support}</span></div>)}
                                 <p className="text-[11px] text-slate-500 mb-3 italic bg-slate-50 p-2 rounded border border-slate-100 line-clamp-3 min-h-[3em] max-h-24 overflow-y-auto">"{project.tindak_lanjut || "-"}"</p>
-                                <div className="flex items-end justify-between pt-3 border-t border-slate-100">
-                                    <div className="text-[10px] text-slate-500 flex flex-col gap-0.5"><div className="font-mono mb-0.5">BC: {formatCompactCurrency(project.barecost)}</div><div className="font-mono text-slate-700">Offer: {formatCompactCurrency(project.penawaran)}</div><div className="font-mono text-blue-700">Cont: {formatCompactCurrency(project.kontrak)}</div></div>
-                                    <div className="text-right text-[10px] font-bold"><div className="text-emerald-600">GPM Offer: {formatPercent(project.gpm_offer_pct)}</div><div className="text-blue-600">GPM Cont: {formatPercent(project.gpm_contract_pct)}</div></div>
-                                </div>
+                                <div className="flex items-end justify-between pt-3 border-t border-slate-100"><div className="text-[10px] text-slate-500 flex flex-col gap-0.5"><div className="font-mono mb-0.5">BC: {formatCompactCurrency(project.barecost)}</div><div className="font-mono text-slate-700">Offer: {formatCompactCurrency(project.penawaran)}</div><div className="font-mono text-blue-700">Cont: {formatCompactCurrency(project.kontrak)}</div></div><div className="text-right text-[10px] font-bold"><div className="text-emerald-600">GPM Offer: {formatPercent(project.gpm_offer_pct)}</div><div className="text-blue-600">GPM Cont: {formatPercent(project.gpm_contract_pct)}</div></div></div>
                             </Card>
                         ))}
                     </div>
                 </div>
             )}
 
-            {/* 5. PROJECT LIST TAB */}
+            {/* 5. PROJECTS LIST TAB */}
             {activeTab === 'projects' && (
                 <div className="space-y-6">
                     <Card className="overflow-hidden">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 items-center">
-                            <div className="flex items-center gap-2 mr-2"><Filter size={16} className="text-slate-400" /><span className="text-xs font-semibold text-slate-600">Filters:</span></div>
-                            {['Owner', 'PIC', 'Status'].map(filterType => { 
-                                const val = filterType === 'Owner' ? filterOwner : filterType === 'PIC' ? filterPic : filterStatus; 
-                                const setVal = filterType === 'Owner' ? setFilterOwner : filterType === 'PIC' ? setFilterPic : setFilterStatus; 
-                                const opts = filterType === 'Owner' ? uniqueOwners : filterType === 'PIC' ? uniquePics : uniqueStatuses; 
-                                return (<div key={filterType} className="flex items-center gap-2"><span className="text-xs text-slate-500">{filterType}:</span><select className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-emerald-500 bg-white" value={val} onChange={(e) => setVal(e.target.value)}>{opts.map(o => <option key={o} value={o}>{o}</option>)}</select></div>); 
-                            })}
-                            {(filterOwner !== 'All' || filterPic !== 'All' || filterStatus !== 'All') && <button onClick={() => { setFilterOwner('All'); setFilterPic('All'); setFilterStatus('All'); }} className="text-xs text-red-500 hover:text-red-700 ml-auto border border-red-200 px-2 py-0.5 rounded bg-white">Reset</button>}
-                        </div>
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 items-center"><div className="flex items-center gap-2 mr-2"><Filter size={16} className="text-slate-400" /><span className="text-xs font-semibold text-slate-600">Filters:</span></div>{['Owner', 'PIC', 'Status'].map(filterType => { const val = filterType === 'Owner' ? filterOwner : filterType === 'PIC' ? filterPic : filterStatus; const setVal = filterType === 'Owner' ? setFilterOwner : filterType === 'PIC' ? setFilterPic : setFilterStatus; const opts = filterType === 'Owner' ? uniqueOwners : filterType === 'PIC' ? uniquePics : uniqueStatuses; return (<div key={filterType} className="flex items-center gap-2"><span className="text-xs text-slate-500">{filterType}:</span><select className="text-xs border border-slate-200 rounded px-2 py-1 focus:outline-emerald-500 bg-white" value={val} onChange={(e) => setVal(e.target.value)}>{opts.map(o => <option key={o} value={o}>{o}</option>)}</select></div>); })}{(filterOwner !== 'All' || filterPic !== 'All' || filterStatus !== 'All') && <button onClick={() => { setFilterOwner('All'); setFilterPic('All'); setFilterStatus('All'); }} className="text-xs text-red-500 hover:text-red-700 ml-auto border border-red-200 px-2 py-0.5 rounded bg-white">Reset</button>}</div>
                         <div className="overflow-x-auto">
                             <div className="max-h-[70vh] overflow-auto">
                                 <table className="w-full text-sm text-left text-slate-600 relative">
                                     <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider z-20">
-                                        <tr>
-                                            <SortableHeader label="Nama Pekerjaan" sortKey="project_name" currentSort={sortConfig} onSort={requestSort}/>
-                                            <SortableHeader label="PIC" sortKey="pic" currentSort={sortConfig} onSort={requestSort}/>
-                                            <SortableHeader label="Barecost" sortKey="barecost" currentSort={sortConfig} onSort={requestSort} align="right"/>
-                                            <SortableHeader label="Penawaran" sortKey="penawaran" currentSort={sortConfig} onSort={requestSort} align="right"/>
-                                            <SortableHeader label="Kontrak" sortKey="kontrak" currentSort={sortConfig} onSort={requestSort} align="right"/>
-                                            <SortableHeader label="GPM Offer" sortKey="gpm_offer_pct" currentSort={sortConfig} onSort={requestSort} align="right"/>
-                                            <SortableHeader label="GPM Cont" sortKey="gpm_contract_pct" currentSort={sortConfig} onSort={requestSort} align="right"/>
-                                            <SortableHeader label="Update" sortKey="last_update_date" currentSort={sortConfig} onSort={requestSort} align="center"/>
-                                            <SortableHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={requestSort} align="center"/>
-                                            <th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
-                                        </tr>
+                                        <tr><SortableHeader label="Nama Pekerjaan" sortKey="project_name" currentSort={sortConfig} onSort={requestSort}/><SortableHeader label="PIC" sortKey="pic" currentSort={sortConfig} onSort={requestSort}/><SortableHeader label="Barecost" sortKey="barecost" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Penawaran" sortKey="penawaran" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Kontrak" sortKey="kontrak" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="GPM Offer" sortKey="gpm_offer_pct" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="GPM Cont" sortKey="gpm_contract_pct" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Update" sortKey="last_update_date" currentSort={sortConfig} onSort={requestSort} align="center"/><SortableHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={requestSort} align="center"/><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th></tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">{activeProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody>
                                 </table>
@@ -557,18 +606,7 @@ export default function App() {
                     <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
                         <button onClick={() => setIsDoneListOpen(!isDoneListOpen)} className="w-full flex items-center justify-between p-4 bg-slate-100 hover:bg-slate-200 transition-colors"><div className="flex items-center gap-2"><CheckCircle2 size={18} className="text-emerald-500" /><span className="font-bold text-slate-700 text-xs">Pekerjaan Selesai</span></div>{isDoneListOpen ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}</button>
                         {isDoneListOpen && (
-                            <div className="overflow-x-auto border-t border-slate-100">
-                                <div className="max-h-[70vh] overflow-auto">
-                                    <table className="w-full text-sm text-left text-slate-600 relative">
-                                        <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider z-20">
-                                            <tr>
-                                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">Judul Pekerjaan</th><th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">PIC Utama</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Barecost</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Penawaran</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Kontrak</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Offer</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Contract</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Last Update</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Status</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100 bg-slate-50/20">{doneProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody>
-                                    </table>
-                                </div>
-                            </div>
+                            <div className="overflow-x-auto border-t border-slate-100"><div className="max-h-[70vh] overflow-auto"><table className="w-full text-sm text-left text-slate-600 relative"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider z-20"><tr><th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">Judul Pekerjaan</th><th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">PIC Utama</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Barecost</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Penawaran</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Kontrak</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Offer</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Contract</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Last Update</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Status</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th></tr></thead><tbody className="divide-y divide-slate-100 bg-slate-50/20">{doneProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody></table></div></div>
                         )}
                     </div>
                 </div>
@@ -579,102 +617,25 @@ export default function App() {
                 <Card className="overflow-hidden">
                     <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-lg text-slate-700">List Owner & Portofolio</h3><div className="text-xs text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-200">Total {loadByOwner.length} Active Owners</div></div>
                     <div className="overflow-x-auto min-h-[500px]">
-                        <table className="w-full text-sm text-left text-slate-600">
-                            <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider">
-                                <tr><th className="px-6 py-4 w-12 text-center">No</th><th className="px-6 py-4">Nama Owner</th><th className="px-6 py-4 text-center">Jumlah Proyek</th><th className="px-6 py-4 text-right">Total Nilai Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Kontrak</th></tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {loadByOwner.map((owner, idx) => { 
-                                    const ownerProjects = data.filter(p => p.owner === owner.name); 
-                                    const totalOwnerVal = ownerProjects.reduce((acc, curr) => acc + curr.penawaran, 0); 
-                                    const totalOwnerGPMVal = ownerProjects.reduce((acc, curr) => acc + curr.gpm_offer_val, 0); 
-                                    const avgOwnerGPM = totalOwnerVal > 0 ? (totalOwnerGPMVal / totalOwnerVal) * 100 : 0; 
-                                    const totalOwnerContractVal = ownerProjects.reduce((acc, curr) => acc + curr.kontrak, 0); 
-                                    const totalOwnerGPMContractVal = ownerProjects.reduce((acc, curr) => acc + curr.gpm_contract_val, 0); 
-                                    const avgOwnerContractGPM = totalOwnerContractVal > 0 ? (totalOwnerGPMContractVal / totalOwnerContractVal) * 100 : 0; 
-                                    return (
-                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-6 py-4 text-center text-slate-400">{idx + 1}</td>
-                                            <td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={16}/></div>{owner.name}</td>
-                                            <td className="px-6 py-4 text-center"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-xs">{owner.count}</span></td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-700">{formatCurrency(owner.value)}</td>
-                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td>
-                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td>
-                                        </tr>
-                                    ); 
-                                })}
-                            </tbody>
-                        </table>
+                        <table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider"><tr><th className="px-6 py-4 w-12 text-center">No</th><th className="px-6 py-4">Nama Owner</th><th className="px-6 py-4 text-center">Jumlah Proyek</th><th className="px-6 py-4 text-right">Total Nilai Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Kontrak</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100">{loadByOwner.map((owner, idx) => { const ownerProjects = data.filter(p => p.owner === owner.name); const totalOwnerVal = ownerProjects.reduce((acc, curr) => acc + curr.penawaran, 0); const totalOwnerGPMVal = ownerProjects.reduce((acc, curr) => acc + curr.gpm_offer_val, 0); const avgOwnerGPM = totalOwnerVal > 0 ? (totalOwnerGPMVal / totalOwnerVal) * 100 : 0; const totalOwnerContractVal = ownerProjects.reduce((acc, curr) => acc + curr.kontrak, 0); const totalOwnerGPMContractVal = ownerProjects.reduce((acc, curr) => acc + curr.gpm_contract_val, 0); const avgOwnerContractGPM = totalOwnerContractVal > 0 ? (totalOwnerGPMContractVal / totalOwnerContractVal) * 100 : 0; return (<tr key={idx} className="hover:bg-slate-50/50 transition-colors group"><td className="px-6 py-4 text-center text-slate-400">{idx + 1}</td><td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={16}/></div>{owner.name}</td><td className="px-6 py-4 text-center"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-xs">{owner.count}</span></td><td className="px-6 py-4 text-right font-mono text-slate-700">{formatCurrency(owner.value)}</td><td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td><td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td></tr>); })}</tbody></table>
                     </div>
                 </Card>
             )}
 
-            {/* 7. MASTER SETTINGS (ADMIN ONLY) */}
+            {/* 7. SETTINGS TAB */}
             {activeTab === 'settings' && auth.role === 'admin' && (
-                <div className="max-w-2xl mx-auto mt-10">
-                    <Card className="p-8">
-                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100"><div className="bg-slate-100 p-3 rounded-full"><Key size={24} className="text-slate-700"/></div><div><h3 className="font-bold text-xl text-slate-800">Master Password Settings</h3><p className="text-sm text-slate-500">Kelola akses keamanan untuk dashboard</p></div></div>
-                        <div className="space-y-6">
-                            <div><label className="block text-sm font-bold text-slate-700 mb-2">Admin Password</label><input type="text" className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={adminPassInput} onChange={(e) => setAdminPassInput(e.target.value)} /><p className="text-[10px] text-slate-400 mt-1">Akses penuh ke semua fitur termasuk menu ini.</p></div>
-                            <div><label className="block text-sm font-bold text-slate-700 mb-2">Guest Password</label><input type="text" className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={guestPassInput} onChange={(e) => setGuestPassInput(e.target.value)} /><p className="text-[10px] text-slate-400 mt-1">Akses terbatas (Hanya Dashboard & List Project).</p></div>
-                            <div className="pt-4 flex items-center justify-between"><span className="text-sm font-bold text-emerald-600">{passSaveStatus}</span><button onClick={handleSavePasswords} className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center gap-2"><Save size={18}/> Simpan Perubahan</button></div>
-                        </div>
-                    </Card>
-                </div>
+                <div className="max-w-2xl mx-auto mt-10"><Card className="p-8"><div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100"><div className="bg-slate-100 p-3 rounded-full"><Key size={24} className="text-slate-700"/></div><div><h3 className="font-bold text-xl text-slate-800">Master Password Settings</h3><p className="text-sm text-slate-500">Kelola akses keamanan untuk dashboard</p></div></div><div className="space-y-6"><div><label className="block text-sm font-bold text-slate-700 mb-2">Admin Password</label><input type="text" className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={adminPassInput} onChange={(e) => setAdminPassInput(e.target.value)} /><p className="text-[10px] text-slate-400 mt-1">Akses penuh ke semua fitur termasuk menu ini.</p></div><div><label className="block text-sm font-bold text-slate-700 mb-2">Guest Password</label><input type="text" className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={guestPassInput} onChange={(e) => setGuestPassInput(e.target.value)} /><p className="text-[10px] text-slate-400 mt-1">Akses terbatas (Hanya Dashboard & List Project).</p></div><div className="pt-4 flex items-center justify-between"><span className="text-sm font-bold text-emerald-600">{passSaveStatus}</span><button onClick={handleSavePasswords} className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center gap-2"><Save size={18}/> Simpan Perubahan</button></div></div></Card></div>
             )}
         </div>
-        
-        {/* Mobile Navigation */}
+
+        {/* MOBILE NAV */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-3 flex justify-around shadow-2xl z-50">{menuItems.filter(m => m.id !== 'settings').map(item => (<button key={item.id} onClick={() => { setActiveTab(item.id); setActivePicFilter(null); }} className={`flex flex-col items-center ${activeTab === item.id ? 'text-emerald-600' : 'text-slate-400'}`}><item.icon size={20} /><span className="text-[9px] font-bold uppercase mt-1">{item.id === 'team' ? 'Load' : item.id}</span></button>))}</div>
       </main>
 
-      {/* Modal Notes */}
+      {/* MODAL */}
       {selectedProjectForNotes && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-200">
-                <div className="p-4 border-b flex justify-between items-center bg-slate-50">
-                    <div className="pr-8"><h3 className="font-bold text-slate-800 flex items-center gap-2">Notes & Tindak Lanjut</h3><p className="text-[11px] text-slate-500 mt-1 leading-tight">{selectedProjectForNotes.project_name}</p></div>
-                    <button onClick={() => setSelectedProjectForNotes(null)} className="text-slate-400 p-1 hover:bg-slate-200 rounded-full flex-shrink-0"><X size={20} /></button>
-                </div>
-                <div className="p-4 h-[450px] overflow-y-auto space-y-4 bg-slate-50/50">
-                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm">
-                        <h4 className="text-xs font-black text-blue-700 mb-2 flex items-center gap-1 uppercase tracking-wider"><MessageSquare size={12}/> Update Terakhir</h4>
-                        <div className="flex justify-between items-center text-[10px] mt-2 font-bold text-slate-500 uppercase"><span>{formatDate(selectedProjectForNotes.last_update_date)}</span><Badge status={selectedProjectForNotes.status} /></div>
-                        <p className="text-sm text-slate-700 italic mt-2 leading-relaxed bg-white/50 p-2 rounded border border-blue-50 whitespace-pre-wrap">{selectedProjectForNotes.tindak_lanjut || "Tidak ada catatan"}</p>
-                    </div>
-                    <div className="border-t border-slate-200 my-2 relative"><span className="absolute -top-2.5 left-4 bg-slate-50 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual History</span></div>
-                    {(!notes[selectedProjectForNotes.project_name] || notes[selectedProjectForNotes.project_name].length === 0) ? (
-                        <div className="text-center text-slate-300 py-8"><FileText size={48} className="mx-auto opacity-10 mb-2"/><p className="text-xs font-bold uppercase tracking-widest">Belum ada history</p></div>
-                    ) : (
-                        notes[selectedProjectForNotes.project_name].map((note) => (
-                            <div key={note.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm group hover:border-emerald-200 transition-all">
-                                <div className="flex justify-between items-start mb-1 text-[9px] text-slate-400 font-bold">
-                                    <span>{note.time}</span>
-                                    {auth.role === 'admin' && (
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => startEditingNote(note)} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={12} /></button>
-                                            <button onClick={() => handleDeleteNote(note.id)} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={12} /></button>
-                                        </div>
-                                    )}
-                                </div>
-                                {editingNoteId === note.id ? (
-                                    <div className="flex gap-2"><input type="text" className="flex-1 text-sm border-b-2 border-blue-400 outline-none p-1" value={editingText} onChange={(e) => setEditingText(e.target.value)} autoFocus /><button onClick={() => saveEditedNote(note.id)}><Save size={16} className="text-emerald-600"/></button></div>
-                                ) : (
-                                    <p className="text-sm text-slate-700 leading-relaxed">{note.text}</p>
-                                )}
-                            </div>
-                        ))
-                    )}
-                </div>
-                <div className="p-4 border-t bg-white">
-                    <div className="flex gap-2">
-                        <input type="text" className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-inner" placeholder="Tulis update tambahan..." value={newNote} onChange={(e) => setNewNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddNote()} />
-                        <button onClick={handleAddNote} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-200 flex items-center gap-2"><Plus size={18} /> ADD</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-      )}
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"><div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-200"><div className="p-4 border-b flex justify-between items-center bg-slate-50"><div className="pr-8"><h3 className="font-bold text-slate-800 flex items-center gap-2">Notes & Tindak Lanjut</h3><p className="text-[11px] text-slate-500 mt-1 leading-tight">{selectedProjectForNotes.project_name}</p></div><button onClick={() => setSelectedProjectForNotes(null)} className="text-slate-400 p-1 hover:bg-slate-200 rounded-full flex-shrink-0"><X size={20} /></button></div><div className="p-4 h-[450px] overflow-y-auto space-y-4 bg-slate-50/50"><div className="bg-blue-50 border border-blue-100 p-3 rounded-xl shadow-sm"><h4 className="text-xs font-black text-blue-700 mb-2 flex items-center gap-1 uppercase tracking-wider"><MessageSquare size={12}/> Update Terakhir</h4><div className="flex justify-between items-center text-[10px] mt-2 font-bold text-slate-500 uppercase"><span>{formatDate(selectedProjectForNotes.last_update_date)}</span><Badge status={selectedProjectForNotes.status} /></div><p className="text-sm text-slate-700 italic mt-2 leading-relaxed bg-white/50 p-2 rounded border border-blue-50 whitespace-pre-wrap">{selectedProjectForNotes.tindak_lanjut || "Tidak ada catatan"}</p></div><div className="border-t border-slate-200 my-2 relative"><span className="absolute -top-2.5 left-4 bg-slate-50 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual History</span></div>{(!notes[selectedProjectForNotes.project_name] || notes[selectedProjectForNotes.project_name].length === 0) ? (<div className="text-center text-slate-300 py-8"><FileText size={48} className="mx-auto opacity-10 mb-2"/><p className="text-xs font-bold uppercase tracking-widest">Belum ada history</p></div>) : (notes[selectedProjectForNotes.project_name].map((note) => (<div key={note.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm group hover:border-emerald-200 transition-all"><div className="flex justify-between items-start mb-1 text-[9px] text-slate-400 font-bold"><span>{note.time}</span>{auth.role === 'admin' && (<div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => startEditingNote(note)} className="text-slate-400 hover:text-blue-500 p-1"><Edit2 size={12} /></button><button onClick={() => handleDeleteNote(note.id)} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={12} /></button></div>)}</div>{editingNoteId === note.id ? (<div className="flex gap-2"><input type="text" className="flex-1 text-sm border-b-2 border-blue-400 outline-none p-1" value={editingText} onChange={(e) => setEditingText(e.target.value)} autoFocus /><button onClick={() => saveEditedNote(note.id)}><Save size={16} className="text-emerald-600"/></button></div>) : (<p className="text-sm text-slate-700 leading-relaxed">{note.text}</p>)}</div>)))}</div><div className="p-4 border-t bg-white"><div className="flex gap-2"><input type="text" className="flex-1 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-inner" placeholder="Tulis update tambahan..." value={newNote} onChange={(e) => setNewNote(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddNote()} /><button onClick={handleAddNote} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-200 flex items-center gap-2"><Plus size={18} /> ADD</button></div></div></div></div>)}
     </div>
   );
 }
