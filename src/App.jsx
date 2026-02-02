@@ -38,7 +38,7 @@ const checkIsDone = (status, progress) => {
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser
+// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -83,7 +83,16 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   return (
-    <text x={x} y={y} fill="#1e293b" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.9)' }}>
+    <text 
+      x={x} 
+      y={y} 
+      fill="#ffffff" // Warna Putih
+      textAnchor="middle" 
+      dominantBaseline="central" 
+      fontSize={12} // Ukuran sedikit diperbesar
+      fontWeight="bold" 
+      style={{ textShadow: '0px 1px 3px rgba(0,0,0,0.8)' }} // Shadow Hitam
+    >
       {value}
     </text>
   );
@@ -91,7 +100,11 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 
 // --- 3. KOMPONEN UI ---
 
-const Card = ({ children, className = "" }) => <div className={`bg-white rounded-xl shadow-sm border border-slate-200 relative ${className}`}>{children}</div>;
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 relative ${className}`}>
+    {children}
+  </div>
+);
 
 const Badge = ({ status }) => {
   const st = (status || "").toLowerCase().trim();
@@ -153,11 +166,7 @@ const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
         <td className="px-6 py-4 font-medium text-slate-700 align-top sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
             <span className="block whitespace-normal leading-snug min-w-[200px] max-w-[300px]" title={project.project_name}>{project.project_name}</span>
             <div className="flex flex-wrap items-center mt-1">
-                 {/* UPDATE: Added project.department (Column C) next to Owner */}
-                 <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1">
-                    <Building2 size={10} /> 
-                    {project.owner} {project.department ? `- ${project.department}` : ''}
-                 </div>
+                 <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1"><Building2 size={10} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div>
                  <StatusProgressLabel text={project.specific_status} />
             </div>
         </td>
@@ -191,7 +200,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 10.3</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 9.4</p>
             </div>
         </div>
     );
@@ -467,6 +476,7 @@ export default function App() {
             </button>
         </div>
       </aside>
+      
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
             <div>
