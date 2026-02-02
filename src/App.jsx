@@ -181,7 +181,6 @@ const LoadBadge = ({ status }) => {
     return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
-// UPDATED: Lebih Besar & Jelas
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
     <Card className={`p-4 border-l-4 ${colorClass} flex flex-col justify-between h-full`}>
         <div className="flex justify-between items-start mb-2">
@@ -245,7 +244,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 9.5</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 10.6</p>
             </div>
         </div>
     );
@@ -557,12 +556,12 @@ export default function App() {
             {activeTab === 'dashboard' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-6">
-                        <div className="flex justify-between items-center mb-6"><div><h3 className="font-bold text-slate-700">Analisa Profitabilitas (Avg GPM %)</h3><p className="text-[10px] text-slate-400 mt-1">{profitViewMode === 'owner' ? "By Owner (Weighted Avg)" : "By PIC (Weighted Avg)"}</p></div><div className="flex gap-2 bg-slate-100 p-1 rounded-lg">{auth.role === 'admin' && <button onClick={() => setProfitViewMode('pic')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'pic' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Users size={14} /> By PIC</button>}<button onClick={() => setProfitViewMode('owner')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'owner' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Building2 size={14} /> By Owner</button></div></div>
+                        <div className="flex justify-between items-center mb-6"><div><h3 className="font-bold text-lg text-slate-800">Analisa Profitabilitas (Avg GPM %)</h3><p className="text-xs text-slate-400 mt-1">{profitViewMode === 'owner' ? "By Owner (Weighted Avg)" : "By PIC (Weighted Avg)"}</p></div><div className="flex gap-2 bg-slate-100 p-1 rounded-lg">{auth.role === 'admin' && <button onClick={() => setProfitViewMode('pic')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'pic' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Users size={14} /> By PIC</button>}<button onClick={() => setProfitViewMode('owner')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'owner' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Building2 size={14} /> By Owner</button></div></div>
                         <div className="h-80"><ResponsiveContainer width="100%" height="100%"><BarChart data={profitData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" /><XAxis dataKey="name" tick={{fontSize: 10, fill: '#64748B'}} tickFormatter={(val) => val && val.length > 8 ? val.substring(0, 6) + '...' : val} /><YAxis tickFormatter={(val) => `${val.toFixed(0)}%`} tick={{fontSize: 10, fill: '#64748B'}} /><Tooltip formatter={(val) => `${val.toFixed(1)}%`} /><Bar dataKey="gpm_offer_pct" name="GPM Penawaran" fill="#10B981" radius={[4, 4, 0, 0]} /><Bar dataKey="gpm_contract_pct" name="GPM Kontrak" fill="#3B82F6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
                     </Card>
                     <Card className="p-6">
-                        <h3 className="font-bold text-slate-700 mb-6 text-center">Status Proyek (Nominal)</h3>
-                        <div className="h-64 flex items-center justify-center"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={statusData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value" label={renderCustomizedLabel} labelLine={false}>{statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /><Legend verticalAlign="bottom" height={80} iconType="circle" wrapperStyle={{fontSize: '10px'}} layout="horizontal" /></PieChart></ResponsiveContainer></div>
+                        <h3 className="font-bold text-lg text-slate-800 mb-6 text-center">Status Proyek (Nominal)</h3>
+                        <div className="h-72 flex items-center justify-center"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={statusData} cx="50%" cy="50%" innerRadius={75} outerRadius={110} paddingAngle={2} dataKey="value" label={renderCustomizedLabel} labelLine={false}>{statusData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip /><Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{fontSize: '11px', paddingTop: '20px'}} layout="horizontal" /></PieChart></ResponsiveContainer></div>
                     </Card>
                     <Card className="lg:col-span-3 overflow-hidden">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-slate-700">Update Proyek Terbaru</h3><button onClick={() => setActiveTab('projects')} className="text-emerald-600 text-sm font-medium hover:text-emerald-700 flex items-center gap-1">Lihat Semua <ChevronRight size={16}/></button></div>
