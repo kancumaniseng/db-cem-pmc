@@ -84,14 +84,13 @@ const formatDate = (date) => {
   return d.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: '2-digit'});
 };
 
-// Cek Status Done (Termasuk Pending & Cancelled)
 const checkIsDone = (status, progress) => {
     const s = (status || "").toLowerCase();
     const doneKeywords = ['completed', 'done', 'selesai', 'finish', 'cancelled', 'batal', 'pending'];
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
+// Smart CSV Parser
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -129,12 +128,14 @@ const parseCSV = (text) => {
     return rows;
 };
 
+// Render Label Pie Chart (Putih dengan Shadow)
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
   if (percent < 0.02) return null;
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  
   return (
     <text 
       x={x} 
@@ -187,7 +188,7 @@ const LoadBadge = ({ status }) => {
     let color = "bg-emerald-100 text-emerald-700";
     if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
     else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700";
-    return <span className={`text-[10px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
+    return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
@@ -253,7 +254,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final v1.0.0</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.1</p>
             </div>
         </div>
     );
@@ -492,7 +493,10 @@ export default function App() {
         onClick={() => onSort(sortKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
-          {label}<ArrowUpDown size={12} className={`text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`} />
+          {label}
+          <div className={`flex flex-col text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`}>
+             <ArrowUpDown size={12} />
+          </div>
         </div>
       </th>
   );
@@ -581,7 +585,7 @@ export default function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card className="p-6">
                         <h3 className="font-bold text-slate-700 mb-6 flex justify-between items-center"><span>Beban per PIC</span><div className="flex bg-slate-100 rounded-lg p-1 gap-1">{['total', 'active', 'done'].map(m => (<button key={m} onClick={() => setLoadChartMetric(m)} className={`text-[10px] px-2 py-1 rounded capitalize ${loadChartMetric === m ? 'bg-white shadow text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-700'}`}>{m}</button>))}</div></h3>
-                        <div className="h-80"><ResponsiveContainer width="100%" height="100%"><BarChart data={loadByPic} layout="vertical"><XAxis type="number" hide /><YAxis dataKey="name" type="category" width={80} tick={{fontSize: 10}} /><Tooltip /><Bar dataKey={loadChartMetric === 'total' ? 'count' : loadChartMetric === 'active' ? 'activeCount' : 'doneCount'} fill="#8B5CF6" radius={[0,4,4,0]} barSize={20} /></BarChart></ResponsiveContainer></div>
+                        <div className="h-80"><ResponsiveContainer width="100%" height="100%"><BarChart data={loadByPic} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}><XAxis type="number" tick={{ fontSize: 12 }} /><YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12, fontWeight: 'bold' }} /><Tooltip /><Bar dataKey={loadChartMetric === 'total' ? 'count' : loadChartMetric === 'active' ? 'activeCount' : 'doneCount'} fill="#8B5CF6" radius={[0,4,4,0]} barSize={24} /></BarChart></ResponsiveContainer></div>
                     </Card>
                     <Card className="flex flex-col h-[500px]">
                         <div className="p-6 border-b border-slate-100 bg-white z-10 sticky top-0 rounded-t-xl"><div className="flex justify-between items-center"><h3 className="font-bold text-slate-700">Status PIC</h3><div className="relative"><button onClick={() => setShowLoadSettings(!showLoadSettings)} className="text-slate-400 hover:text-slate-600"><Settings size={16}/></button>{showLoadSettings && (<div className="absolute right-0 top-6 bg-white shadow-xl border border-slate-200 p-4 rounded-lg w-64 z-20"><h4 className="text-xs font-bold mb-3">Load Limit Settings</h4><div className="space-y-3"><div><label className="text-[10px] text-slate-500 block">Min Ongoing %</label><input type="range" min="1" max="100" value={loadSettings.ongoingUnder} onChange={(e) => updateLoadThresholds('ongoingUnder', e.target.value)} className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"/><div className="text-right text-[9px]">{loadSettings.ongoingUnder}%</div></div><div><label className="text-[10px] text-slate-500 block">Max Ongoing %</label><input type="range" min="100" max="300" value={loadSettings.ongoingOver} onChange={(e) => updateLoadThresholds('ongoingOver', e.target.value)} className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"/><div className="text-right text-[9px]">{loadSettings.ongoingOver}%</div></div><div><label className="text-[10px] text-slate-500 block">Min Total %</label><input type="range" min="1" max="100" value={loadSettings.totalUnder} onChange={(e) => updateLoadThresholds('totalUnder', e.target.value)} className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"/><div className="text-right text-[9px]">{loadSettings.totalUnder}%</div></div><div><label className="text-[10px] text-slate-500 block">Max Total %</label><input type="range" min="100" max="300" value={loadSettings.totalOver} onChange={(e) => updateLoadThresholds('totalOver', e.target.value)} className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"/><div className="text-right text-[9px]">{loadSettings.totalOver}%</div></div></div></div>)}</div></div></div>
