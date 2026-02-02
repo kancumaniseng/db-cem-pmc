@@ -187,7 +187,7 @@ const LoadBadge = ({ status }) => {
     let color = "bg-emerald-100 text-emerald-700";
     if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
     else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700";
-    return <span className={`text-[10px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
+    return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
@@ -253,7 +253,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.2</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final v1.0.3</p>
             </div>
         </div>
     );
@@ -492,10 +492,7 @@ export default function App() {
         onClick={() => onSort(sortKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
-          {label}
-          <div className={`flex flex-col text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`}>
-             <ArrowUpDown size={12} />
-          </div>
+          {label}<ArrowUpDown size={12} className={`text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`} />
         </div>
       </th>
   );
@@ -669,10 +666,17 @@ export default function App() {
             {activeTab === 'owners' && (
                 <Card className="overflow-hidden">
                     <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-lg text-slate-700">List Owner & Portofolio</h3><div className="text-xs text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-200">Total {loadByOwner.length} Active Owners</div></div>
-                    <div className="overflow-x-auto min-h-[500px]">
-                        <table className="w-full text-sm text-left text-slate-600">
-                            <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider">
-                                <tr><th className="px-6 py-4 w-12 text-center">No</th><th className="px-6 py-4">Nama Owner</th><th className="px-6 py-4 text-center">Jumlah Proyek</th><th className="px-6 py-4 text-right">Total Nilai Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Penawaran</th><th className="px-6 py-4 text-right">Avg GPM Kontrak</th></tr>
+                    <div className="overflow-x-auto max-h-[70vh]">
+                        <table className="w-full text-sm text-left text-slate-600 relative">
+                            <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-xs tracking-wider z-20">
+                                <tr>
+                                    <th className="px-6 py-4 w-12 text-center sticky top-0 bg-slate-50 shadow-sm">No</th>
+                                    <th className="px-6 py-4 sticky top-0 bg-slate-50 shadow-sm">Nama Owner</th>
+                                    <th className="px-6 py-4 text-center sticky top-0 bg-slate-50 shadow-sm">Jumlah Proyek</th>
+                                    <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Total Nilai Penawaran</th>
+                                    <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Avg GPM Penawaran</th>
+                                    <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Avg GPM Kontrak</th>
+                                </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {loadByOwner.map((owner, idx) => { 
@@ -685,11 +689,12 @@ export default function App() {
                                     const avgOwnerContractGPM = totalOwnerContractVal > 0 ? (totalOwnerGPMContractVal / totalOwnerContractVal) * 100 : 0; 
                                     return (
                                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-6 py-4 text-center text-slate-400">{idx + 1}</td>
-                                            <td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={16}/></div>{owner.name}</td>
-                                            <td className="px-6 py-4 text-center"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-xs">{owner.count}</span></td>
-                                            <td className="px-6 py-4 text-right font-mono text-slate-700">{formatCurrency(owner.value)}</td>
-                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td><td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td>
+                                            <td className="px-6 py-4 text-center text-sm text-slate-400">{idx + 1}</td>
+                                            <td className="px-6 py-4 font-medium text-sm text-slate-700 flex items-center gap-2"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={16}/></div>{owner.name}</td>
+                                            <td className="px-6 py-4 text-center"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-sm">{owner.count}</span></td>
+                                            <td className="px-6 py-4 text-right font-mono text-sm text-slate-700">{formatCurrency(owner.value)}</td>
+                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-sm ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td>
+                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-sm ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td>
                                         </tr>
                                     ); 
                                 })}
