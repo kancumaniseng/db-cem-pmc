@@ -129,14 +129,13 @@ const parseCSV = (text) => {
     return rows;
 };
 
-// UPDATED: Font lebih besar (14px) untuk Pie Chart Label
+// UPDATED: Font Pie Chart lebih besar (14px)
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
   if (percent < 0.02) return null;
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  
   return (
     <text 
       x={x} 
@@ -144,7 +143,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
       fill="#ffffff" 
       textAnchor="middle" 
       dominantBaseline="central" 
-      fontSize={14} // Diperbesar
+      fontSize={14} 
       fontWeight="bold" 
       style={{ textShadow: '0px 1px 3px rgba(0,0,0,0.8)' }}
     >
@@ -161,6 +160,7 @@ const Card = ({ children, className = "" }) => (
   </div>
 );
 
+// UPDATED: Font Badge lebih besar (text-xs)
 const Badge = ({ status }) => {
   const st = (status || "").toLowerCase().trim();
   let style = "bg-slate-100 text-slate-700 border-slate-200";
@@ -171,9 +171,10 @@ const Badge = ({ status }) => {
   else if (st.includes("pending") || st.includes("tunggu")) style = "bg-slate-200 text-slate-700 border-slate-300";
   else if (st.includes("completed") || st.includes("selesai") || st.includes("finish") || st.includes("done")) style = "bg-blue-100 text-blue-700 border-blue-200";
   else if (st.includes("cancelled") || st.includes("batal")) style = "bg-gray-100 text-gray-500 border-gray-200 line-through";
-  return <span className={`px-2.5 py-1 rounded-full text-[10px] uppercase font-bold border ${style} whitespace-nowrap`}>{status || "-"}</span>;
+  return <span className={`px-2.5 py-1 rounded-full text-xs uppercase font-bold border ${style} whitespace-nowrap`}>{status || "-"}</span>;
 };
 
+// UPDATED: Font Status Progress lebih besar (text-[10px])
 const StatusProgressLabel = ({ text }) => {
     if (!text) return null;
     const t = String(text).toUpperCase();
@@ -182,14 +183,15 @@ const StatusProgressLabel = ({ text }) => {
     else if (t.includes("OVERDUE") || t.includes("TERLAMBAT")) { style = "text-red-900 bg-red-200 border-red-300"; show = true; } 
     else if (t.includes("CRITICAL")) { style = "text-red-700 bg-red-100 border-red-200"; show = true; }
     if (!show) return null;
-    return <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${style} ml-2`}>{text}</span>;
+    return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${style} ml-2`}>{text}</span>;
 };
 
+// UPDATED: Font Load Badge lebih besar (text-[10px])
 const LoadBadge = ({ status }) => {
     let color = "bg-emerald-100 text-emerald-700";
     if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
     else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700";
-    return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
+    return <span className={`text-[10px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
@@ -218,24 +220,27 @@ const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", sti
 
 const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
     <tr className="hover:bg-slate-50/80 transition-colors group border-b border-slate-50 last:border-0">
+        {/* UPDATED: Nama Proyek font normal (base/sm) */}
         <td className="px-6 py-4 font-medium text-slate-700 align-top sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
-            <span className="block whitespace-normal leading-snug min-w-[200px] max-w-[300px]" title={project.project_name}>{project.project_name}</span>
+            <span className="block whitespace-normal leading-snug min-w-[200px] max-w-[300px] text-sm" title={project.project_name}>{project.project_name}</span>
             <div className="flex flex-wrap items-center mt-1">
-                 <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1"><Building2 size={10} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div>
+                 {/* UPDATED: Owner subtext menjadi text-xs (12px) */}
+                 <div className="text-xs text-slate-400 font-normal flex items-center gap-1"><Building2 size={12} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div>
                  <StatusProgressLabel text={project.specific_status} />
             </div>
         </td>
-        <td className="px-6 py-4 text-xs align-top pt-4 whitespace-nowrap">{project.pic}</td>
-        <td className="px-6 py-4 text-right font-mono text-xs text-slate-500 align-top pt-4 whitespace-nowrap">{formatCurrency(project.barecost)}</td>
-        <td className="px-6 py-4 text-right font-mono text-xs text-slate-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.penawaran)}</td>
-        <td className="px-6 py-4 text-right font-mono text-xs text-blue-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.kontrak)}</td>
-        <td className="px-6 py-4 text-right font-mono text-xs text-emerald-600 font-bold align-top pt-4">{formatPercent(project.gpm_offer_pct)}</td>
-        <td className="px-6 py-4 text-right font-mono text-xs text-blue-600 font-bold align-top pt-4">{formatPercent(project.gpm_contract_pct)}</td>
-        <td className="px-6 py-4 text-center text-xs text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
+        {/* UPDATED: Semua kolom data menjadi text-sm (14px) */}
+        <td className="px-6 py-4 text-sm align-top pt-4 whitespace-nowrap">{project.pic}</td>
+        <td className="px-6 py-4 text-right font-mono text-sm text-slate-500 align-top pt-4 whitespace-nowrap">{formatCurrency(project.barecost)}</td>
+        <td className="px-6 py-4 text-right font-mono text-sm text-slate-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.penawaran)}</td>
+        <td className="px-6 py-4 text-right font-mono text-sm text-blue-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.kontrak)}</td>
+        <td className="px-6 py-4 text-right font-mono text-sm text-emerald-600 font-bold align-top pt-4">{formatPercent(project.gpm_offer_pct)}</td>
+        <td className="px-6 py-4 text-right font-mono text-sm text-blue-600 font-bold align-top pt-4">{formatPercent(project.gpm_contract_pct)}</td>
+        <td className="px-6 py-4 text-center text-sm text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
         <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
         <td className="px-6 py-4 text-center align-top pt-4">
             <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes[project.project_name]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
-                <FileText size={16} />{notes[project.project_name]?.length > 0 && <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full border border-white"></span>}
+                <FileText size={18} />{notes[project.project_name]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
             </button>
         </td>
     </tr>
@@ -255,7 +260,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 10.7 (Visual Optimized)</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 11.0</p>
             </div>
         </div>
     );
@@ -444,7 +449,6 @@ export default function App() {
   const loadByOwner = useMemo(() => { const load = {}; data.forEach(p => { const ownerName = p.owner || "Others"; if (ownerName.toLowerCase() === 'owner') return; const cleanName = ownerName.trim(); if (!load[cleanName]) load[cleanName] = { name: cleanName, count: 0, value: 0 }; load[cleanName].count += 1; load[cleanName].value += p.penawaran; }); return Object.values(load).sort((a, b) => b.value - a.value); }, [data]);
   const statusData = useMemo(() => { const statuses = {}; data.forEach(p => { let st = (p.status || "Unknown").toUpperCase(); if (st.includes("STATUS") || st === "") return; statuses[st] = (statuses[st] || 0) + 1; }); return Object.keys(statuses).map(key => ({ name: key, value: statuses[key] })).sort((a, b) => b.value - a.value); }, [data]);
   const profitData = useMemo(() => { let filtered = showAllProfitability ? data : data.filter(d => checkIsDone(d.status, d.progress)); const aggMap = {}; const key = profitViewMode === 'owner' ? 'owner' : 'pic'; filtered.forEach(p => { let name = p[key] || "Others"; if (key === 'pic' && (name.toLowerCase().includes("pic utama") || name.toLowerCase().includes("pic support"))) return; if (key === 'owner' && name.toLowerCase() === 'owner') return; if (!aggMap[name]) aggMap[name] = { name, offer: 0, contract: 0, gv_offer: 0, gv_contract: 0 }; aggMap[name].offer += p.penawaran; aggMap[name].contract += p.kontrak; aggMap[name].gv_offer += (p.gpm_offer_pct/100)*p.penawaran; aggMap[name].gv_contract += (p.gpm_contract_pct/100)*p.kontrak; }); return Object.values(aggMap).map(o => ({ name: o.name, gpm_offer_pct: o.offer > 0 ? (o.gv_offer/o.offer)*100 : 0, gpm_contract_pct: o.contract > 0 ? (o.gv_contract/o.contract)*100 : 0 })).sort((a,b) => b.gpm_contract_pct - a.gpm_contract_pct).slice(0, 10); }, [data, showAllProfitability, profitViewMode]);
-  
   const filteredProjects = useMemo(() => { 
       let filtered = data.filter(p => { 
           const matchesSearch = (p.project_name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (p.pic || "").toLowerCase().includes(searchQuery.toLowerCase()); 
@@ -490,14 +494,11 @@ export default function App() {
   // --- REUSABLE HEADER CELL ---
   const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
       <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0' : ''}`} 
         onClick={() => onSort(sortKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
-          {label}
-          <div className={`flex flex-col text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`}>
-             <ArrowUpDown size={12} />
-          </div>
+          {label}<ArrowUpDown size={12} className={`text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`} />
         </div>
       </th>
   );
