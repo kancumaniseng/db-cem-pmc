@@ -84,13 +84,14 @@ const formatDate = (date) => {
   return d.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: '2-digit'});
 };
 
+// Cek Status Done (Termasuk Pending & Cancelled)
 const checkIsDone = (status, progress) => {
     const s = (status || "").toLowerCase();
     const doneKeywords = ['completed', 'done', 'selesai', 'finish', 'cancelled', 'batal', 'pending'];
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser
+// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -128,14 +129,12 @@ const parseCSV = (text) => {
     return rows;
 };
 
-// Render Label Pie Chart (Putih dengan Shadow)
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
   if (percent < 0.02) return null;
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  
   return (
     <text 
       x={x} 
@@ -188,7 +187,7 @@ const LoadBadge = ({ status }) => {
     let color = "bg-emerald-100 text-emerald-700";
     if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
     else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700";
-    return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
+    return <span className={`text-[10px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
@@ -254,7 +253,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.1</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.2</p>
             </div>
         </div>
     );
@@ -489,7 +488,7 @@ export default function App() {
   // --- REUSABLE HEADER CELL ---
   const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
       <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0' : ''}`} 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
         onClick={() => onSort(sortKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -550,8 +549,8 @@ export default function App() {
                 <KPICard title="Total Barecost" value={formatCompactCurrency(stats.totalBarecost)} icon={Wallet} colorClass="border-slate-500" />
                 <KPICard title="Total Penawaran" value={formatCompactCurrency(stats.totalPenawaran)} icon={DollarSign} colorClass="border-emerald-500" subtext={<span className="text-emerald-600">Avg GPM: {formatPercent(stats.avgGPMOffer)}</span>} />
                 <KPICard title="Total Kontrak" value={formatCompactCurrency(stats.totalKontrak)} icon={TrendingUp} colorClass="border-blue-500" subtext={<span className="text-blue-600">Avg GPM: {formatPercent(stats.avgGPMContract)}</span>} />
-                <Card className="p-4 border-l-4 border-l-red-500 flex flex-col justify-between h-full">
-                    <div className="flex justify-between items-start mb-2"><div><p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyek</p><h3 className="text-3xl font-bold text-slate-800 mt-1">{stats.totalProjects}</h3></div><div className="p-3 bg-slate-50 rounded-xl text-red-500"><AlertCircle size={24}/></div></div>
+                <Card className={`p-4 border-l-4 ${stats.countCritical > 0 || stats.countOverdue > 0 ? 'border-l-red-500' : 'border-l-emerald-500'} flex flex-col justify-between h-full`}>
+                    <div className="flex justify-between items-start mb-2"><div><p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyek</p><h3 className="text-3xl font-bold text-slate-800 mt-1">{stats.totalProjects}</h3></div><div className={`p-3 bg-slate-50 rounded-xl ${stats.countCritical > 0 || stats.countOverdue > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{stats.countCritical > 0 || stats.countOverdue > 0 ? <AlertCircle size={24}/> : <CheckCircle2 size={24}/>}</div></div>
                     <div className="mt-auto pt-3 border-t border-slate-50 text-xs flex flex-col gap-1.5">
                         <div className="flex gap-2 justify-between"><span className="text-blue-600 font-bold">{stats.ongoingProjects} Ongoing</span><span className="text-slate-300">|</span><span className="text-emerald-600 font-bold">{stats.doneProjects} Done</span></div>
                         <div className="flex gap-2 justify-between border-t border-slate-100 pt-1.5 mt-1">
