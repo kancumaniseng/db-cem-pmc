@@ -1,15 +1,68 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  LayoutDashboard, Users, TrendingUp, AlertCircle, Plus, Trash2, X, FileText, Search, DollarSign, Briefcase, Clock, ChevronRight, ChevronDown, ChevronUp, Wallet, Building2, Filter, Eye, Edit2, Save, MessageSquare, RefreshCw, ArrowUpDown, Calendar, Settings, CheckCircle2, Lock, Key, LogOut, Sliders, UserCheck
+  LayoutDashboard, 
+  Users, 
+  TrendingUp, 
+  AlertCircle, 
+  Plus, 
+  Trash2, 
+  X, 
+  FileText, 
+  Search, 
+  DollarSign, 
+  Briefcase, 
+  Clock, 
+  ChevronRight, 
+  ChevronDown, 
+  ChevronUp, 
+  Wallet, 
+  Building2, 
+  Filter, 
+  Eye, 
+  Edit2, 
+  Save, 
+  MessageSquare, 
+  RefreshCw, 
+  ArrowUpDown, 
+  Calendar, 
+  Settings, 
+  CheckCircle2, 
+  Lock, 
+  Key, 
+  LogOut, 
+  Sliders, 
+  UserCheck
 } from 'lucide-react';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  ReferenceLine
 } from 'recharts';
 
 // --- 1. KONFIGURASI ---
-const DEFAULT_PASSWORDS = { admin: "admincost2026", guest: "guestonly" };
-const LOAD_LIMITS = { LOW: 2, HIGH: 6 };
-const COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED', '#DB2777', '#0891B2', '#4F46E5', '#65A30D', '#9333EA', '#EA580C', '#0D9488', '#64748B'];
+const DEFAULT_PASSWORDS = {
+    admin: "admincost2026",
+    guest: "guestonly"
+};
+
+const LOAD_LIMITS = {
+    LOW: 2,   
+    HIGH: 6
+};
+
+const COLORS = [
+  '#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED', '#DB2777', 
+  '#0891B2', '#4F46E5', '#65A30D', '#9333EA', '#EA580C', '#0D9488', '#64748B'
+];
 
 // --- 2. FUNGSI PEMBANTU ---
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val || 0);
@@ -38,7 +91,7 @@ const checkIsDone = (status, progress) => {
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
+// Smart CSV Parser
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -83,16 +136,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="#ffffff" // Warna Putih
-      textAnchor="middle" 
-      dominantBaseline="central" 
-      fontSize={12} // Ukuran sedikit diperbesar
-      fontWeight="bold" 
-      style={{ textShadow: '0px 1px 3px rgba(0,0,0,0.8)' }} // Shadow Hitam
-    >
+    <text x={x} y={y} fill="#ffffff" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight="bold" style={{ textShadow: '0px 1px 3px rgba(0,0,0,0.8)' }}>
       {value}
     </text>
   );
@@ -137,22 +181,23 @@ const LoadBadge = ({ status }) => {
     return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
+// UPDATED: Lebih Besar & Jelas
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
     <Card className={`p-4 border-l-4 ${colorClass} flex flex-col justify-between h-full`}>
         <div className="flex justify-between items-start mb-2">
             <div className="overflow-hidden pr-2">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider truncate">{title}</p>
-                <h3 className="text-xl font-bold text-slate-800 mt-1 break-words leading-tight" title={value}>{value}</h3>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider truncate">{title}</p>
+                <h3 className="text-2xl font-bold text-slate-800 mt-1 break-words leading-tight" title={value}>{value}</h3>
             </div>
-            <div className="p-2 bg-slate-50 rounded-lg text-slate-500 flex-shrink-0"><Icon size={18} /></div>
+            <div className="p-3 bg-slate-50 rounded-xl text-slate-500 flex-shrink-0"><Icon size={24} /></div>
         </div>
-        {subtext && <div className="mt-auto pt-2 border-t border-slate-50 text-[10px] font-medium truncate">{subtext}</div>}
+        {subtext && <div className="mt-auto pt-3 border-t border-slate-50 text-xs font-medium truncate">{subtext}</div>}
     </Card>
 );
 
 const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
     <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0' : ''}`} 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
         onClick={() => onSort(sortKey)}
     >
       <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -200,7 +245,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 9.4</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 9.5</p>
             </div>
         </div>
     );
@@ -476,7 +521,6 @@ export default function App() {
             </button>
         </div>
       </aside>
-      
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
             <div>
@@ -498,10 +542,10 @@ export default function App() {
                 <KPICard title="Total Penawaran" value={formatCompactCurrency(stats.totalPenawaran)} icon={DollarSign} colorClass="border-emerald-500" subtext={<span className="text-emerald-600">Avg GPM: {formatPercent(stats.avgGPMOffer)}</span>} />
                 <KPICard title="Total Kontrak" value={formatCompactCurrency(stats.totalKontrak)} icon={TrendingUp} colorClass="border-blue-500" subtext={<span className="text-blue-600">Avg GPM: {formatPercent(stats.avgGPMContract)}</span>} />
                 <Card className="p-4 border-l-4 border-l-red-500 flex flex-col justify-between h-full">
-                    <div className="flex justify-between items-start mb-2"><div><p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyek</p><h3 className="text-2xl font-bold text-slate-800 mt-1">{stats.totalProjects}</h3></div><div className="p-2 bg-slate-50 rounded-lg text-red-500"><AlertCircle size={18}/></div></div>
-                    <div className="mt-auto pt-2 border-t border-slate-50 text-[10px] flex flex-col gap-1">
+                    <div className="flex justify-between items-start mb-2"><div><p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyek</p><h3 className="text-3xl font-bold text-slate-800 mt-1">{stats.totalProjects}</h3></div><div className="p-3 bg-slate-50 rounded-xl text-red-500"><AlertCircle size={24}/></div></div>
+                    <div className="mt-auto pt-3 border-t border-slate-50 text-xs flex flex-col gap-1.5">
                         <div className="flex gap-2 justify-between"><span className="text-blue-600 font-bold">{stats.ongoingProjects} Ongoing</span><span className="text-slate-300">|</span><span className="text-emerald-600 font-bold">{stats.doneProjects} Done</span></div>
-                        <div className="flex gap-2 justify-between border-t border-slate-100 pt-1 mt-1">
+                        <div className="flex gap-2 justify-between border-t border-slate-100 pt-1.5 mt-1">
                             <span className="text-red-900 font-bold">{stats.countOverdue} Overdue</span><span className="text-red-600 font-bold">{stats.countCritical} Critical</span><span className="text-amber-600 font-bold">{stats.countNearCritical} Near</span>
                         </div>
                     </div>
