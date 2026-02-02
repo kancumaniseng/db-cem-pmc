@@ -91,7 +91,7 @@ const checkIsDone = (status, progress) => {
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser
+// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -129,7 +129,6 @@ const parseCSV = (text) => {
     return rows;
 };
 
-// UPDATED: Font Pie Chart lebih besar (14px)
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value }) => {
   if (percent < 0.02) return null;
   const RADIAN = Math.PI / 180;
@@ -160,7 +159,6 @@ const Card = ({ children, className = "" }) => (
   </div>
 );
 
-// UPDATED: Font Badge lebih besar (text-xs)
 const Badge = ({ status }) => {
   const st = (status || "").toLowerCase().trim();
   let style = "bg-slate-100 text-slate-700 border-slate-200";
@@ -174,7 +172,6 @@ const Badge = ({ status }) => {
   return <span className={`px-2.5 py-1 rounded-full text-xs uppercase font-bold border ${style} whitespace-nowrap`}>{status || "-"}</span>;
 };
 
-// UPDATED: Font Status Progress lebih besar (text-[10px])
 const StatusProgressLabel = ({ text }) => {
     if (!text) return null;
     const t = String(text).toUpperCase();
@@ -186,7 +183,6 @@ const StatusProgressLabel = ({ text }) => {
     return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${style} ml-2`}>{text}</span>;
 };
 
-// UPDATED: Font Load Badge lebih besar (text-[10px])
 const LoadBadge = ({ status }) => {
     let color = "bg-emerald-100 text-emerald-700";
     if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
@@ -220,16 +216,13 @@ const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", sti
 
 const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
     <tr className="hover:bg-slate-50/80 transition-colors group border-b border-slate-50 last:border-0">
-        {/* UPDATED: Nama Proyek font normal (base/sm) */}
         <td className="px-6 py-4 font-medium text-slate-700 align-top sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
             <span className="block whitespace-normal leading-snug min-w-[200px] max-w-[300px] text-sm" title={project.project_name}>{project.project_name}</span>
             <div className="flex flex-wrap items-center mt-1">
-                 {/* UPDATED: Owner subtext menjadi text-xs (12px) */}
                  <div className="text-xs text-slate-400 font-normal flex items-center gap-1"><Building2 size={12} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div>
                  <StatusProgressLabel text={project.specific_status} />
             </div>
         </td>
-        {/* UPDATED: Semua kolom data menjadi text-sm (14px) */}
         <td className="px-6 py-4 text-sm align-top pt-4 whitespace-nowrap">{project.pic}</td>
         <td className="px-6 py-4 text-right font-mono text-sm text-slate-500 align-top pt-4 whitespace-nowrap">{formatCurrency(project.barecost)}</td>
         <td className="px-6 py-4 text-right font-mono text-sm text-slate-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.penawaran)}</td>
@@ -260,7 +253,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 11.0</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final v1.0.0</p>
             </div>
         </div>
     );
@@ -449,6 +442,7 @@ export default function App() {
   const loadByOwner = useMemo(() => { const load = {}; data.forEach(p => { const ownerName = p.owner || "Others"; if (ownerName.toLowerCase() === 'owner') return; const cleanName = ownerName.trim(); if (!load[cleanName]) load[cleanName] = { name: cleanName, count: 0, value: 0 }; load[cleanName].count += 1; load[cleanName].value += p.penawaran; }); return Object.values(load).sort((a, b) => b.value - a.value); }, [data]);
   const statusData = useMemo(() => { const statuses = {}; data.forEach(p => { let st = (p.status || "Unknown").toUpperCase(); if (st.includes("STATUS") || st === "") return; statuses[st] = (statuses[st] || 0) + 1; }); return Object.keys(statuses).map(key => ({ name: key, value: statuses[key] })).sort((a, b) => b.value - a.value); }, [data]);
   const profitData = useMemo(() => { let filtered = showAllProfitability ? data : data.filter(d => checkIsDone(d.status, d.progress)); const aggMap = {}; const key = profitViewMode === 'owner' ? 'owner' : 'pic'; filtered.forEach(p => { let name = p[key] || "Others"; if (key === 'pic' && (name.toLowerCase().includes("pic utama") || name.toLowerCase().includes("pic support"))) return; if (key === 'owner' && name.toLowerCase() === 'owner') return; if (!aggMap[name]) aggMap[name] = { name, offer: 0, contract: 0, gv_offer: 0, gv_contract: 0 }; aggMap[name].offer += p.penawaran; aggMap[name].contract += p.kontrak; aggMap[name].gv_offer += (p.gpm_offer_pct/100)*p.penawaran; aggMap[name].gv_contract += (p.gpm_contract_pct/100)*p.kontrak; }); return Object.values(aggMap).map(o => ({ name: o.name, gpm_offer_pct: o.offer > 0 ? (o.gv_offer/o.offer)*100 : 0, gpm_contract_pct: o.contract > 0 ? (o.gv_contract/o.contract)*100 : 0 })).sort((a,b) => b.gpm_contract_pct - a.gpm_contract_pct).slice(0, 10); }, [data, showAllProfitability, profitViewMode]);
+  
   const filteredProjects = useMemo(() => { 
       let filtered = data.filter(p => { 
           const matchesSearch = (p.project_name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (p.pic || "").toLowerCase().includes(searchQuery.toLowerCase()); 
@@ -569,7 +563,7 @@ export default function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-6">
                         <div className="flex justify-between items-center mb-6"><div><h3 className="font-bold text-lg text-slate-800">Analisa Profitabilitas (Avg GPM %)</h3><p className="text-xs text-slate-400 mt-1">{profitViewMode === 'owner' ? "By Owner (Weighted Avg)" : "By PIC (Weighted Avg)"}</p></div><div className="flex gap-2 bg-slate-100 p-1 rounded-lg">{auth.role === 'admin' && <button onClick={() => setProfitViewMode('pic')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'pic' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Users size={14} /> By PIC</button>}<button onClick={() => setProfitViewMode('owner')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'owner' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Building2 size={14} /> By Owner</button></div></div>
-                        <div className="h-80"><ResponsiveContainer width="100%" height="100%"><BarChart data={profitData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" /><XAxis dataKey="name" tick={{fontSize: 11, fill: '#64748B', fontWeight: 'bold'}} tickFormatter={(val) => val && val.length > 8 ? val.substring(0, 6) + '...' : val} /><YAxis tickFormatter={(val) => `${val.toFixed(0)}%`} tick={{fontSize: 11, fill: '#64748B'}} /><Tooltip formatter={(val) => `${val.toFixed(1)}%`} /><Bar dataKey="gpm_offer_pct" name="GPM Penawaran" fill="#10B981" radius={[4, 4, 0, 0]} /><Bar dataKey="gpm_contract_pct" name="GPM Kontrak" fill="#3B82F6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
+                        <div className="h-80"><ResponsiveContainer width="100%" height="100%"><BarChart data={profitData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" /><XAxis dataKey="name" tick={{fontSize: 12, fill: '#64748B', fontWeight: 'bold'}} tickFormatter={(val) => val && val.length > 8 ? val.substring(0, 6) + '...' : val} /><YAxis tickFormatter={(val) => `${val.toFixed(0)}%`} tick={{fontSize: 12, fill: '#64748B'}} /><Tooltip formatter={(val) => `${val.toFixed(1)}%`} /><Bar dataKey="gpm_offer_pct" name="GPM Penawaran" fill="#10B981" radius={[4, 4, 0, 0]} /><Bar dataKey="gpm_contract_pct" name="GPM Kontrak" fill="#3B82F6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
                     </Card>
                     <Card className="p-6">
                         <h3 className="font-bold text-lg text-slate-800 mb-6 text-center">Status Proyek (Nominal)</h3>
@@ -577,7 +571,7 @@ export default function App() {
                     </Card>
                     <Card className="lg:col-span-3 overflow-hidden">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-slate-700">Update Proyek Terbaru</h3><button onClick={() => setActiveTab('projects')} className="text-emerald-600 text-sm font-medium hover:text-emerald-700 flex items-center gap-1">Lihat Semua <ChevronRight size={16}/></button></div>
-                        <div className="overflow-x-auto"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider"><tr><th className="px-6 py-3">Nama Pekerjaan</th><th className="px-6 py-4">PIC</th><th className="px-6 py-4">Owner</th><th className="px-6 py-4 text-right">Barecost</th><th className="px-6 py-4 text-right">Penawaran</th><th className="px-6 py-3 text-center">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{[...data].sort((a,b) => (b.last_update_date || 0) - (a.last_update_date || 0)).slice(0,5).map((project) => (<tr key={project.id} className="hover:bg-slate-50/80 transition-colors"><td className="px-6 py-3 font-medium text-slate-700"><span className="block whitespace-normal leading-snug min-w-[200px]" title={project.project_name}>{project.project_name}</span><div className="flex flex-wrap items-center mt-1"><div className="text-[10px] text-slate-400 font-normal flex items-center gap-1"><Building2 size={10} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div><StatusProgressLabel text={project.specific_status} /></div></td><td className="px-6 py-3 text-xs">{project.pic}</td><td className="px-6 py-3">{project.owner}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.barecost)}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.penawaran)}</td><td className="px-6 py-3 text-center"><Badge status={project.status} /></td></tr>))}</tbody></table></div>
+                        <div className="overflow-x-auto"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider"><tr><th className="px-6 py-3">Nama Pekerjaan</th><th className="px-6 py-4">PIC</th><th className="px-6 py-4">Owner</th><th className="px-6 py-4 text-right">Barecost</th><th className="px-6 py-4 text-right">Penawaran</th><th className="px-6 py-3 text-center">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{[...data].sort((a,b) => (b.last_update_date || 0) - (a.last_update_date || 0)).slice(0,5).map((project) => (<tr key={project.id} className="hover:bg-slate-50/80 transition-colors"><td className="px-6 py-3 font-medium text-slate-700"><span className="block whitespace-normal leading-snug min-w-[200px]" title={project.project_name}>{project.project_name}</span><div className="flex flex-wrap items-center mt-1"><div className="text-xs text-slate-400 font-normal flex items-center gap-1"><Building2 size={12} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div><StatusProgressLabel text={project.specific_status} /></div></td><td className="px-6 py-3 text-xs">{project.pic}</td><td className="px-6 py-3">{project.owner}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.barecost)}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.penawaran)}</td><td className="px-6 py-3 text-center"><Badge status={project.status} /></td></tr>))}</tbody></table></div>
                     </Card>
                 </div>
             )}
@@ -692,8 +686,7 @@ export default function App() {
                                             <td className="px-6 py-4 font-medium text-slate-700 flex items-center gap-2"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={16}/></div>{owner.name}</td>
                                             <td className="px-6 py-4 text-center"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-xs">{owner.count}</span></td>
                                             <td className="px-6 py-4 text-right font-mono text-slate-700">{formatCurrency(owner.value)}</td>
-                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td>
-                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td>
+                                            <td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td><td className="px-6 py-4 text-right"><span className={`font-bold text-xs ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td>
                                         </tr>
                                     ); 
                                 })}
