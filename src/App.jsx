@@ -27,9 +27,11 @@ import {
   Calendar, 
   Settings, 
   CheckCircle2, 
+  BarChart2, 
+  Menu, 
+  LogOut, 
   Lock, 
   Key, 
-  LogOut, 
   Sliders, 
   UserCheck
 } from 'lucide-react';
@@ -91,7 +93,7 @@ const checkIsDone = (status, progress) => {
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser
+// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -136,7 +138,16 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   return (
-    <text x={x} y={y} fill="#1e293b" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.9)' }}>
+    <text 
+      x={x} 
+      y={y} 
+      fill="#ffffff" // Warna Putih
+      textAnchor="middle" 
+      dominantBaseline="central" 
+      fontSize={12} // Font lebih besar
+      fontWeight="bold" 
+      style={{ textShadow: '0px 1px 3px rgba(0,0,0,0.8)' }} // Shadow Hitam Kuat
+    >
       {value}
     </text>
   );
@@ -177,7 +188,7 @@ const StatusProgressLabel = ({ text }) => {
 const LoadBadge = ({ status }) => {
     let color = "bg-emerald-100 text-emerald-700";
     if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
-    else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700"; // Kuning Tua/Amber
+    else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700";
     return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
@@ -196,7 +207,7 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
 
 const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
     <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0' : ''}`} 
         onClick={() => onSort(sortKey)}
     >
       <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -244,7 +255,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 9.1 (Fixed Critical Filter)</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 10.2</p>
             </div>
         </div>
     );
@@ -305,10 +316,8 @@ export default function App() {
           const dataRows = parsedRows.slice(3); 
           const parsedData = dataRows.map((columns, index) => {
               if (columns.length < 5) return null; 
-
               const clean = (val) => val ? val.trim().replace(/^"|"$/g, '') : "";
               const projName = clean(columns[1]);
-
               if (projName.toUpperCase() === 'JUDUL PEKERJAAN') return null;
               if (projName.toLowerCase().includes('total') || projName.toLowerCase().includes('jumlah')) return null;
               if (!projName) return null;
@@ -432,11 +441,10 @@ export default function App() {
           const matchesPic = filterPic === 'All' || p.pic === filterPic; 
           const matchesStatus = filterStatus === 'All' || p.status === filterStatus; 
           const matchesActivePic = !activePicFilter || p.pic === activePicFilter;
-          // STRICT FILTER FOR PROGRESS STATUS (Fixing "CRITICAL" showing "NEAR CRITICAL")
+          // STRICT FILTER FOR PROGRESS STATUS
           const matchesProgress = filterProgressStatus === 'All' || (() => {
               const status = (p.specific_status || "").toUpperCase();
               if (filterProgressStatus === 'CRITICAL') {
-                  // Explicitly exclude NEAR CRITICAL when filtering for CRITICAL
                   return status.includes('CRITICAL') && !status.includes('NEAR');
               }
               return status.includes(filterProgressStatus);
@@ -512,7 +520,6 @@ export default function App() {
             </button>
         </div>
       </aside>
-      
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
             <div>
