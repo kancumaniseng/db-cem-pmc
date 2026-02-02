@@ -1,70 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  LayoutDashboard, 
-  Users, 
-  TrendingUp, 
-  AlertCircle, 
-  Plus, 
-  Trash2, 
-  X, 
-  FileText, 
-  Search, 
-  DollarSign, 
-  Briefcase, 
-  Clock, 
-  ChevronRight, 
-  ChevronDown, 
-  ChevronUp, 
-  Wallet, 
-  Building2, 
-  Filter, 
-  Eye, 
-  Edit2, 
-  Save, 
-  MessageSquare, 
-  RefreshCw, 
-  ArrowUpDown, 
-  Calendar, 
-  Settings, 
-  CheckCircle2, 
-  BarChart2, 
-  Menu, 
-  LogOut, 
-  Lock, 
-  Key, 
-  Sliders, 
-  UserCheck
+  LayoutDashboard, Users, TrendingUp, AlertCircle, Plus, Trash2, X, FileText, Search, DollarSign, Briefcase, Clock, ChevronRight, ChevronDown, ChevronUp, Wallet, Building2, Filter, Eye, Edit2, Save, MessageSquare, RefreshCw, ArrowUpDown, Calendar, Settings, CheckCircle2, Lock, Key, LogOut, Sliders, UserCheck
 } from 'lucide-react';
 import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ReferenceLine
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine
 } from 'recharts';
 
 // --- 1. KONFIGURASI ---
-const DEFAULT_PASSWORDS = {
-    admin: "admincost2026",
-    guest: "guestonly"
-};
-
-const LOAD_LIMITS = {
-    LOW: 2,   
-    HIGH: 6
-};
-
-const COLORS = [
-  '#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED', '#DB2777', 
-  '#0891B2', '#4F46E5', '#65A30D', '#9333EA', '#EA580C', '#0D9488', '#64748B'
-];
+const DEFAULT_PASSWORDS = { admin: "admincost2026", guest: "guestonly" };
+const LOAD_LIMITS = { LOW: 2, HIGH: 6 };
+const COLORS = ['#2563EB', '#DC2626', '#059669', '#D97706', '#7C3AED', '#DB2777', '#0891B2', '#4F46E5', '#65A30D', '#9333EA', '#EA580C', '#0D9488', '#64748B'];
 
 // --- 2. FUNGSI PEMBANTU ---
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val || 0);
@@ -93,7 +38,7 @@ const checkIsDone = (status, progress) => {
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
+// Smart CSV Parser
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -138,16 +83,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
   return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="#ffffff" // Warna Putih
-      textAnchor="middle" 
-      dominantBaseline="central" 
-      fontSize={12} // Font lebih besar
-      fontWeight="bold" 
-      style={{ textShadow: '0px 1px 3px rgba(0,0,0,0.8)' }} // Shadow Hitam Kuat
-    >
+    <text x={x} y={y} fill="#1e293b" textAnchor="middle" dominantBaseline="central" fontSize={10} fontWeight="bold" style={{ textShadow: '0px 0px 3px rgba(255,255,255,0.9)' }}>
       {value}
     </text>
   );
@@ -155,11 +91,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 
 // --- 3. KOMPONEN UI ---
 
-const Card = ({ children, className = "" }) => (
-  <div className={`bg-white rounded-xl shadow-sm border border-slate-200 relative ${className}`}>
-    {children}
-  </div>
-);
+const Card = ({ children, className = "" }) => <div className={`bg-white rounded-xl shadow-sm border border-slate-200 relative ${className}`}>{children}</div>;
 
 const Badge = ({ status }) => {
   const st = (status || "").toLowerCase().trim();
@@ -221,7 +153,11 @@ const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
         <td className="px-6 py-4 font-medium text-slate-700 align-top sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
             <span className="block whitespace-normal leading-snug min-w-[200px] max-w-[300px]" title={project.project_name}>{project.project_name}</span>
             <div className="flex flex-wrap items-center mt-1">
-                 <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1"><Building2 size={10} /> {project.owner}</div>
+                 {/* UPDATE: Added project.department (Column C) next to Owner */}
+                 <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1">
+                    <Building2 size={10} /> 
+                    {project.owner} {project.department ? `- ${project.department}` : ''}
+                 </div>
                  <StatusProgressLabel text={project.specific_status} />
             </div>
         </td>
@@ -255,7 +191,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 10.2</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 10.3</p>
             </div>
         </div>
     );
@@ -286,7 +222,10 @@ export default function App() {
   const [showLoadSettings, setShowLoadSettings] = useState(false);
   const [activePicFilter, setActivePicFilter] = useState(null);
   const [loadChartMetric, setLoadChartMetric] = useState('total');
+  
+  // State for Done List accordion
   const [isDoneListOpen, setIsDoneListOpen] = useState(false);
+  
   const [showAllProfitability, setShowAllProfitability] = useState(false);
   const [profitViewMode, setProfitViewMode] = useState('owner'); 
   const [selectedProjectForNotes, setSelectedProjectForNotes] = useState(null);
@@ -300,6 +239,14 @@ export default function App() {
   const [passSaveStatus, setPassSaveStatus] = useState("");
 
   useEffect(() => { const savedAuth = localStorage.getItem('cost_dashboard_auth_state'); if (savedAuth) setAuth(JSON.parse(savedAuth)); setIsAuthChecking(false); }, []);
+
+  // AUTO EXPAND DONE LIST WHEN SEARCHING
+  useEffect(() => {
+    if (searchQuery && searchQuery.trim() !== "") {
+        setIsDoneListOpen(true);
+    }
+  }, [searchQuery]);
+
   const handleLogin = (role) => { const newAuth = { isAuth: true, role }; setAuth(newAuth); localStorage.setItem('cost_dashboard_auth_state', JSON.stringify(newAuth)); if (role === 'guest') setProfitViewMode('owner'); setAdminPassInput(passwords.admin); setGuestPassInput(passwords.guest); setActiveTab('dashboard'); };
   const handleLogout = () => { setAuth({ isAuth: false, role: null }); localStorage.removeItem('cost_dashboard_auth_state'); setActiveTab('dashboard'); };
   const handleSavePasswords = () => { if (!adminPassInput || !guestPassInput) return; const newPasswords = { admin: adminPassInput, guest: guestPassInput }; setPasswords(newPasswords); localStorage.setItem('cost_dashboard_passwords', JSON.stringify(newPasswords)); setPassSaveStatus("Tersimpan!"); setTimeout(() => setPassSaveStatus(""), 3000); };
@@ -565,7 +512,7 @@ export default function App() {
                     </Card>
                     <Card className="lg:col-span-3 overflow-hidden">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-slate-700">Update Proyek Terbaru</h3><button onClick={() => setActiveTab('projects')} className="text-emerald-600 text-sm font-medium hover:text-emerald-700 flex items-center gap-1">Lihat Semua <ChevronRight size={16}/></button></div>
-                        <div className="overflow-x-auto"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider"><tr><th className="px-6 py-3">Nama Pekerjaan</th><th className="px-6 py-4">PIC</th><th className="px-6 py-4">Owner</th><th className="px-6 py-4 text-right">Barecost</th><th className="px-6 py-4 text-right">Penawaran</th><th className="px-6 py-3 text-center">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{[...data].sort((a,b) => (b.last_update_date || 0) - (a.last_update_date || 0)).slice(0,5).map((project) => (<tr key={project.id} className="hover:bg-slate-50/80 transition-colors"><td className="px-6 py-3 font-medium text-slate-700"><span className="block whitespace-normal leading-snug min-w-[200px]" title={project.project_name}>{project.project_name}</span><div className="flex flex-wrap items-center mt-1"><div className="text-[10px] text-slate-400 font-normal flex items-center gap-1"><Building2 size={10} /> {project.owner}</div><StatusProgressLabel text={project.specific_status} /></div></td><td className="px-6 py-3 text-xs">{project.pic}</td><td className="px-6 py-3">{project.owner}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.barecost)}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.penawaran)}</td><td className="px-6 py-3 text-center"><Badge status={project.status} /></td></tr>))}</tbody></table></div>
+                        <div className="overflow-x-auto"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider"><tr><th className="px-6 py-3">Nama Pekerjaan</th><th className="px-6 py-4">PIC</th><th className="px-6 py-4">Owner</th><th className="px-6 py-4 text-right">Barecost</th><th className="px-6 py-4 text-right">Penawaran</th><th className="px-6 py-3 text-center">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{[...data].sort((a,b) => (b.last_update_date || 0) - (a.last_update_date || 0)).slice(0,5).map((project) => (<tr key={project.id} className="hover:bg-slate-50/80 transition-colors"><td className="px-6 py-3 font-medium text-slate-700"><span className="block whitespace-normal leading-snug min-w-[200px]" title={project.project_name}>{project.project_name}</span><div className="flex flex-wrap items-center mt-1"><div className="text-[10px] text-slate-400 font-normal flex items-center gap-1"><Building2 size={10} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div><StatusProgressLabel text={project.specific_status} /></div></td><td className="px-6 py-3 text-xs">{project.pic}</td><td className="px-6 py-3">{project.owner}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.barecost)}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.penawaran)}</td><td className="px-6 py-3 text-center"><Badge status={project.status} /></td></tr>))}</tbody></table></div>
                     </Card>
                 </div>
             )}
