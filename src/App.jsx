@@ -31,7 +31,9 @@ import {
   Key, 
   LogOut, 
   Sliders, 
-  UserCheck
+  UserCheck,
+  ChevronLeft, 
+  Menu
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -91,7 +93,7 @@ const checkIsDone = (status, progress) => {
     return doneKeywords.some(k => s.includes(k)) || progress >= 100;
 };
 
-// Smart CSV Parser untuk menangani Alt+Enter (Newline) dalam cell
+// Smart CSV Parser
 const parseCSV = (text) => {
     const rows = [];
     let currentRow = [];
@@ -187,7 +189,7 @@ const LoadBadge = ({ status }) => {
     let color = "bg-emerald-100 text-emerald-700";
     if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
     else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700";
-    return <span className={`text-[9px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
+    return <span className={`text-[10px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
 };
 
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
@@ -253,7 +255,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final v1.0.3</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 19.0 (Bug Fixed)</p>
             </div>
         </div>
     );
@@ -287,6 +289,8 @@ export default function App() {
   
   // State for Done List accordion
   const [isDoneListOpen, setIsDoneListOpen] = useState(false);
+  // Sidebar State
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   const [showAllProfitability, setShowAllProfitability] = useState(false);
   const [profitViewMode, setProfitViewMode] = useState('owner'); 
@@ -474,6 +478,25 @@ export default function App() {
   const activeProjectsList = useMemo(() => filteredProjects.filter(p => !checkIsDone(p.status, p.progress)), [filteredProjects]);
   const doneProjectsList = useMemo(() => filteredProjects.filter(p => checkIsDone(p.status, p.progress)), [filteredProjects]);
   
+  // LOGIC SORT KHUSUS DASHBOARD (REQ #3 + Limit 5)
+  const dashboardProjects = useMemo(() => {
+    let sorted = [...activeProjectsList];
+    sorted.sort((a, b) => {
+        const aHasNotes = notes[a.project_name] && notes[a.project_name].length > 0;
+        const bHasNotes = notes[b.project_name] && notes[b.project_name].length > 0;
+
+        // 1. Proyek dengan Notes di atas
+        if (aHasNotes && !bHasNotes) return -1;
+        if (!aHasNotes && bHasNotes) return 1;
+
+        // 2. Sort by Last Update Date (Latest First)
+        const dateA = a.last_update_date ? new Date(a.last_update_date).getTime() : 0;
+        const dateB = b.last_update_date ? new Date(b.last_update_date).getTime() : 0;
+        return dateB - dateA;
+    });
+    return sorted.slice(0, 5);
+  }, [activeProjectsList, notes]);
+
   const uniqueOwners = useMemo(() => ['All', ...new Set(data.map(d => d.owner).filter(o => o && o.toLowerCase() !== 'owner').sort())], [data]);
   const uniquePics = useMemo(() => ['All', ...new Set(data.map(d => d.pic).filter(p => p && !p.toLowerCase().includes('pic utama') && !p.toLowerCase().includes('pic support')).sort())], [data]);
   const uniqueStatuses = useMemo(() => ['All', ...new Set(data.map(d => d.status).filter(s => s && !s.toLowerCase().includes('status')).sort())], [data]);
@@ -503,29 +526,47 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-800 overflow-hidden relative">
-      <aside className="w-64 bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl z-10">
-        <div className="p-6 border-b border-slate-800">
-          <h1 className="text-xl font-bold flex items-center gap-2 text-white"><Briefcase className="text-emerald-400" /> Cost Control</h1>
-          <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{auth.role === 'admin' ? 'Administrator' : 'Guest Mode'}</p>
+      <aside className={`${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-slate-900 text-white flex-shrink-0 hidden md:flex flex-col shadow-xl z-10 transition-all duration-300`}>
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+          {!isSidebarCollapsed && (
+            <div>
+              <h1 className="text-lg font-bold flex items-center gap-2 text-white"><Briefcase className="text-emerald-400" /> Cost Control</h1>
+              <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{auth.role === 'admin' ? 'Administrator' : 'Guest Mode'}</p>
+            </div>
+          )}
+           {isSidebarCollapsed && (
+            <div className="w-full flex justify-center"><Briefcase className="text-emerald-400" /></div>
+          )}
+          <button onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-800 transition-colors">
+            {isSidebarCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+          </button>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-2 space-y-2">
           {menuItems.map(item => (
-            <button key={item.id} onClick={() => { setActiveTab(item.id); setActivePicFilter(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${activeTab === item.id ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-                <item.icon size={18} />
-                <span className="font-medium text-sm capitalize">{item.label}</span>
+            <button 
+              key={item.id} 
+              onClick={() => { setActiveTab(item.id); setActivePicFilter(null); }} 
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 ${activeTab === item.id ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} ${isSidebarCollapsed ? 'justify-center' : ''}`}
+              title={isSidebarCollapsed ? item.label : ''}
+            >
+                <item.icon size={20} />
+                {!isSidebarCollapsed && <span className="font-medium text-sm capitalize">{item.label}</span>}
             </button>
           ))}
         </nav>
         <div className="p-4 bg-slate-950 text-xs text-slate-500 border-t border-slate-800 space-y-3">
-            <div>
-                <p className="font-semibold text-slate-400 mb-1">Last Sync:</p>
-                <p className="font-mono text-[10px] text-emerald-500">{lastSync ? lastSync.toLocaleString('id-ID') : '-'}</p>
-            </div>
-            <button onClick={handleLogout} className="flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors w-full pt-2 border-t border-slate-800">
-                <LogOut size={14} /> Logout
+            {!isSidebarCollapsed && (
+              <div>
+                  <p className="font-semibold text-slate-400 mb-1">Last Sync:</p>
+                  <p className="font-mono text-[10px] text-emerald-500">{lastSync ? lastSync.toLocaleString('id-ID') : '-'}</p>
+              </div>
+            )}
+            <button onClick={handleLogout} className={`flex items-center gap-2 text-red-400 hover:text-red-300 transition-colors w-full pt-2 ${!isSidebarCollapsed && 'border-t border-slate-800'} ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+                <LogOut size={18} /> {!isSidebarCollapsed && 'Logout'}
             </button>
         </div>
       </aside>
+      
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 z-10">
             <div>
@@ -571,7 +612,39 @@ export default function App() {
                     </Card>
                     <Card className="lg:col-span-3 overflow-hidden">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-slate-700">Update Proyek Terbaru</h3><button onClick={() => setActiveTab('projects')} className="text-emerald-600 text-sm font-medium hover:text-emerald-700 flex items-center gap-1">Lihat Semua <ChevronRight size={16}/></button></div>
-                        <div className="overflow-x-auto"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider"><tr><th className="px-6 py-3">Nama Pekerjaan</th><th className="px-6 py-4">PIC</th><th className="px-6 py-4">Owner</th><th className="px-6 py-4 text-right">Barecost</th><th className="px-6 py-4 text-right">Penawaran</th><th className="px-6 py-3 text-center">Status</th></tr></thead><tbody className="divide-y divide-slate-100">{[...data].sort((a,b) => (b.last_update_date || 0) - (a.last_update_date || 0)).slice(0,5).map((project) => (<tr key={project.id} className="hover:bg-slate-50/80 transition-colors"><td className="px-6 py-3 font-medium text-slate-700"><span className="block whitespace-normal leading-snug min-w-[200px]" title={project.project_name}>{project.project_name}</span><div className="flex flex-wrap items-center mt-1"><div className="text-xs text-slate-400 font-normal flex items-center gap-1"><Building2 size={12} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div><StatusProgressLabel text={project.specific_status} /></div></td><td className="px-6 py-3 text-xs">{project.pic}</td><td className="px-6 py-3">{project.owner}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.barecost)}</td><td className="px-6 py-3 text-right font-mono text-xs">{formatCurrency(project.penawaran)}</td><td className="px-6 py-3 text-center"><Badge status={project.status} /></td></tr>))}</tbody></table></div>
+                        <div className="overflow-x-auto"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider">
+                            <tr>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-left">Nama Pekerjaan</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-left">PIC</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Barecost</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Penawaran</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Status</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Last Update</th>
+                                <th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
+                            </tr>
+                            </thead><tbody className="divide-y divide-slate-100">
+                                {dashboardProjects.map(project => ( 
+                                <tr key={project.id} className="hover:bg-slate-50/80 transition-colors group border-b border-slate-50 last:border-0">
+                                    <td className="px-6 py-4 font-medium text-slate-700 align-top sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">
+                                        <span className="block whitespace-normal leading-snug min-w-[200px] max-w-[300px] text-sm" title={project.project_name}>{project.project_name}</span>
+                                        <div className="flex flex-wrap items-center mt-1">
+                                            <div className="text-xs text-slate-400 font-normal flex items-center gap-1"><Building2 size={12} /> {project.owner} {project.department ? `- ${project.department}` : ''}</div>
+                                            <StatusProgressLabel text={project.specific_status} />
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm align-top pt-4 whitespace-nowrap">{project.pic}</td>
+                                    <td className="px-6 py-4 text-right font-mono text-sm text-slate-500 align-top pt-4 whitespace-nowrap">{formatCurrency(project.barecost)}</td>
+                                    <td className="px-6 py-4 text-right font-mono text-sm text-slate-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.penawaran)}</td>
+                                    <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
+                                    <td className="px-6 py-4 text-center text-sm text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
+                                    <td className="px-6 py-4 text-center align-top pt-4">
+                                        <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes[project.project_name]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
+                                            <FileText size={18} />{notes[project.project_name]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
+                                        </button>
+                                    </td>
+                                </tr>
+                                ))}
+                            </tbody></table></div>
                     </Card>
                 </div>
             )}
@@ -650,7 +723,16 @@ export default function App() {
                                     <table className="w-full text-sm text-left text-slate-600 relative">
                                         <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider z-20">
                                             <tr>
-                                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">Judul Pekerjaan</th><th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm">PIC Utama</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Barecost</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Penawaran</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">Kontrak</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Offer</th><th className="px-6 py-4 text-right sticky top-0 z-20 bg-slate-50 shadow-sm">GPM Contract</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Last Update</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Status</th><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
+                                                <SortableHeader label="Nama Pekerjaan" sortKey="project_name" currentSort={sortConfig} onSort={requestSort} stickyLeft={true} />
+                                                <SortableHeader label="PIC" sortKey="pic" currentSort={sortConfig} onSort={requestSort} />
+                                                <SortableHeader label="Barecost" sortKey="barecost" currentSort={sortConfig} onSort={requestSort} align="right" />
+                                                <SortableHeader label="Penawaran" sortKey="penawaran" currentSort={sortConfig} onSort={requestSort} align="right" />
+                                                <SortableHeader label="Kontrak" sortKey="kontrak" currentSort={sortConfig} onSort={requestSort} align="right" />
+                                                <SortableHeader label="GPM Offer" sortKey="gpm_offer_pct" currentSort={sortConfig} onSort={requestSort} align="right" />
+                                                <SortableHeader label="GPM Cont" sortKey="gpm_contract_pct" currentSort={sortConfig} onSort={requestSort} align="right" />
+                                                <SortableHeader label="Update" sortKey="last_update_date" currentSort={sortConfig} onSort={requestSort} align="center" />
+                                                <SortableHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={requestSort} align="center" />
+                                                <th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 bg-slate-50/20">{doneProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody>
