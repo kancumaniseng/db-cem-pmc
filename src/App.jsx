@@ -255,7 +255,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.4</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.5</p>
             </div>
         </div>
     );
@@ -454,7 +454,6 @@ export default function App() {
           const matchesPic = filterPic === 'All' || p.pic === filterPic; 
           const matchesStatus = filterStatus === 'All' || p.status === filterStatus; 
           const matchesActivePic = !activePicFilter || p.pic === activePicFilter;
-          // STRICT FILTER FOR PROGRESS STATUS
           const matchesProgress = filterProgressStatus === 'All' || (() => {
               const status = (p.specific_status || "").toUpperCase();
               if (filterProgressStatus === 'CRITICAL') {
@@ -478,9 +477,10 @@ export default function App() {
   const activeProjectsList = useMemo(() => filteredProjects.filter(p => !checkIsDone(p.status, p.progress)), [filteredProjects]);
   const doneProjectsList = useMemo(() => filteredProjects.filter(p => checkIsDone(p.status, p.progress)), [filteredProjects]);
   
-  // LOGIC SORT KHUSUS DASHBOARD (REQ #3 + Limit 5)
+  // LOGIC SORT KHUSUS DASHBOARD (REQ #3 + Limit 10)
   const dashboardProjects = useMemo(() => {
-    let sorted = [...activeProjectsList];
+    // REVISI: Menggunakan filteredProjects agar status DONE/CANCELLED/PENDING ikut masuk
+    let sorted = [...filteredProjects];
     sorted.sort((a, b) => {
         const aHasNotes = notes[a.project_name] && notes[a.project_name].length > 0;
         const bHasNotes = notes[b.project_name] && notes[b.project_name].length > 0;
@@ -494,8 +494,9 @@ export default function App() {
         const dateB = b.last_update_date ? new Date(b.last_update_date).getTime() : 0;
         return dateB - dateA;
     });
-    return sorted.slice(0, 5);
-  }, [activeProjectsList, notes]);
+    // UPDATED: Limit menjadi 10
+    return sorted.slice(0, 10);
+  }, [filteredProjects, notes]); // Changed dependency to filteredProjects
 
   const uniqueOwners = useMemo(() => ['All', ...new Set(data.map(d => d.owner).filter(o => o && o.toLowerCase() !== 'owner').sort())], [data]);
   const uniquePics = useMemo(() => ['All', ...new Set(data.map(d => d.pic).filter(p => p && !p.toLowerCase().includes('pic utama') && !p.toLowerCase().includes('pic support')).sort())], [data]);
@@ -511,7 +512,7 @@ export default function App() {
   // --- REUSABLE HEADER CELL ---
   const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
       <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
         onClick={() => onSort(sortKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
