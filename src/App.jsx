@@ -255,7 +255,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.5</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.6</p>
             </div>
         </div>
     );
@@ -385,23 +385,71 @@ export default function App() {
 
   // STATS
   const stats = useMemo(() => {
-    const totalProjects = data.length; const totalBarecost = data.reduce((acc, curr) => acc + curr.barecost, 0); const totalPenawaran = data.reduce((acc, curr) => acc + curr.penawaran, 0); const totalKontrak = data.reduce((acc, curr) => acc + curr.kontrak, 0);
-    const totalGVOffer = data.reduce((acc, curr) => acc + curr.gpm_offer_val, 0); const totalGVContract = data.reduce((acc, curr) => acc + curr.gpm_contract_val, 0);
-    const avgGPMOffer = totalPenawaran > 0 ? (totalGVOffer / totalPenawaran) * 100 : 0; const avgGPMContract = totalKontrak > 0 ? (totalGVContract / totalKontrak) * 100 : 0;
+    let totalBarecost = 0;
+    let totalPenawaran = 0;
+    let totalKontrak = 0;
     
-    let countOverdue = 0; let countCritical = 0; let countNearCritical = 0;
+    // Variabel untuk perhitungan GPM Weighted
+    let sumBarecostForOffer = 0;
+    let sumOffer = 0;
+    let sumBarecostForContract = 0;
+    let sumContract = 0;
+    let countContract = 0;
+
+    let countOverdue = 0;
+    let countCritical = 0;
+    let countNearCritical = 0;
+
+    // Loop data untuk akumulasi nilai
     data.forEach(d => {
+        // Total Nominal Global (semua proyek)
+        totalBarecost += d.barecost;
+        totalPenawaran += d.penawaran;
+        totalKontrak += d.kontrak;
+
+        // Hitung GPM Offer (Hanya jika ada nilai penawaran)
+        if (d.penawaran > 0) {
+            sumOffer += d.penawaran;
+            sumBarecostForOffer += d.barecost;
+        }
+
+        // Hitung GPM Kontrak (Hanya jika ada nilai kontrak)
+        if (d.kontrak > 0) {
+            sumContract += d.kontrak;
+            sumBarecostForContract += d.barecost;
+            countContract++;
+        }
+
+        // Hitung Status
         const s = (d.specific_status || "").toUpperCase();
-        if (s.includes("NEAR CRITICAL")) countNearCritical++; else if (s.includes("OVERDUE") || s.includes("TERLAMBAT")) countOverdue++; else if (s.includes("CRITICAL") || s.includes("KRITIS")) countCritical++;
+        if (s.includes("NEAR CRITICAL")) countNearCritical++; 
+        else if (s.includes("OVERDUE") || s.includes("TERLAMBAT")) countOverdue++; 
+        else if (s.includes("CRITICAL") || s.includes("KRITIS")) countCritical++;
     });
 
+    // Rumus Weighted GPM
+    const avgGPMOffer = sumOffer > 0 ? ((sumOffer - sumBarecostForOffer) / sumOffer) * 100 : 0;
+    const avgGPMContract = sumContract > 0 ? ((sumContract - sumBarecostForContract) / sumContract) * 100 : 0;
+
+    // Hitung Proyek Done
     const doneProjects = data.filter(p => checkIsDone(p.status, p.progress)).length;
+
     return { 
-        totalProjects, totalBarecost, totalPenawaran, totalKontrak, avgGPMOffer, avgGPMContract, 
-        countOverdue, countCritical, countNearCritical, 
-        doneProjects, ongoingProjects: totalProjects - doneProjects 
+        totalProjects: data.length, 
+        totalBarecost, 
+        totalPenawaran, 
+        totalKontrak, 
+        avgGPMOffer, 
+        avgGPMContract,
+        countContract, 
+        countOverdue, 
+        countCritical, 
+        countNearCritical, 
+        doneProjects, 
+        ongoingProjects: data.length - doneProjects 
     };
   }, [data]);
+
   const dynamicLimits = useMemo(() => { const low = Math.floor(stats.totalProjects * (loadSettings.lowPct / 100)); const high = Math.ceil(stats.totalProjects * (loadSettings.highPct / 100)); return { low: low || LOAD_LIMITS.LOW, high: high || LOAD_LIMITS.HIGH }; }, [stats.totalProjects, loadSettings]);
   
   const loadByPic = useMemo(() => {
@@ -581,7 +629,21 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <KPICard title="Total Barecost" value={formatCompactCurrency(stats.totalBarecost)} icon={Wallet} colorClass="border-slate-500" />
                 <KPICard title="Total Penawaran" value={formatCompactCurrency(stats.totalPenawaran)} icon={DollarSign} colorClass="border-emerald-500" subtext={<span className="text-emerald-600">Avg GPM: {formatPercent(stats.avgGPMOffer)}</span>} />
-                <KPICard title="Total Kontrak" value={formatCompactCurrency(stats.totalKontrak)} icon={TrendingUp} colorClass="border-blue-500" subtext={<span className="text-blue-600">Avg GPM: {formatPercent(stats.avgGPMContract)}</span>} />
+                
+                {/* REVISI: Total Kontrak dengan subtext jumlah kontrak */}
+                <KPICard 
+                    title="Total Kontrak" 
+                    value={formatCompactCurrency(stats.totalKontrak)} 
+                    icon={TrendingUp} 
+                    colorClass="border-blue-500" 
+                    subtext={
+                        <div className="flex flex-col">
+                            <span className="text-blue-600">Avg GPM: {formatPercent(stats.avgGPMContract)}</span>
+                            <span className="text-slate-400 text-[10px] mt-0.5">{stats.countContract} Proyek Deal</span>
+                        </div>
+                    } 
+                />
+
                 <Card className={`p-4 border-l-4 ${stats.countCritical > 0 || stats.countOverdue > 0 ? 'border-l-red-500' : 'border-l-emerald-500'} flex flex-col justify-between h-full`}>
                     <div className="flex justify-between items-start mb-2"><div><p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyek</p><h3 className="text-3xl font-bold text-slate-800 mt-1">{stats.totalProjects}</h3></div><div className={`p-3 bg-slate-50 rounded-xl ${stats.countCritical > 0 || stats.countOverdue > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{stats.countCritical > 0 || stats.countOverdue > 0 ? <AlertCircle size={24}/> : <CheckCircle2 size={24}/>}</div></div>
                     <div className="mt-auto pt-3 border-t border-slate-50 text-xs flex flex-col gap-1.5">
@@ -613,11 +675,8 @@ export default function App() {
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-left">PIC</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Barecost</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Penawaran</th>
-                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Kontrak</th>
-                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">GPM Offer</th>
-                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">GPM Cont</th>
-                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Last Update</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Status</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Last Update</th>
                                 <th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
                             </tr>
                             </thead><tbody className="divide-y divide-slate-100">
@@ -633,11 +692,8 @@ export default function App() {
                                     <td className="px-6 py-4 text-sm align-top pt-4 whitespace-nowrap">{project.pic}</td>
                                     <td className="px-6 py-4 text-right font-mono text-sm text-slate-500 align-top pt-4 whitespace-nowrap">{formatCurrency(project.barecost)}</td>
                                     <td className="px-6 py-4 text-right font-mono text-sm text-slate-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.penawaran)}</td>
-                                    <td className="px-6 py-4 text-right font-mono text-sm text-blue-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.kontrak)}</td>
-                                    <td className="px-6 py-4 text-right font-mono text-sm text-emerald-600 font-bold align-top pt-4">{formatPercent(project.gpm_offer_pct)}</td>
-                                    <td className="px-6 py-4 text-right font-mono text-sm text-blue-600 font-bold align-top pt-4">{formatPercent(project.gpm_contract_pct)}</td>
-                                    <td className="px-6 py-4 text-center text-sm text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
                                     <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
+                                    <td className="px-6 py-4 text-center text-sm text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
                                     <td className="px-6 py-4 text-center align-top pt-4">
                                         <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes[project.project_name]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
                                             <FileText size={18} />{notes[project.project_name]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
@@ -712,7 +768,7 @@ export default function App() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">{activeProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody>
-                                    </table>
+                                </table>
                             </div>
                         </div>
                     </Card>
