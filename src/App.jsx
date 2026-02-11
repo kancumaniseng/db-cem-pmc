@@ -477,26 +477,20 @@ export default function App() {
   const activeProjectsList = useMemo(() => filteredProjects.filter(p => !checkIsDone(p.status, p.progress)), [filteredProjects]);
   const doneProjectsList = useMemo(() => filteredProjects.filter(p => checkIsDone(p.status, p.progress)), [filteredProjects]);
   
-  // LOGIC SORT KHUSUS DASHBOARD (REQ #3 + Limit 10)
+  // LOGIC SORT KHUSUS DASHBOARD (REQ #3 + Limit 10 + All Statuses)
   const dashboardProjects = useMemo(() => {
-    // REVISI: Menggunakan filteredProjects agar status DONE/CANCELLED/PENDING ikut masuk
     let sorted = [...filteredProjects];
     sorted.sort((a, b) => {
         const aHasNotes = notes[a.project_name] && notes[a.project_name].length > 0;
         const bHasNotes = notes[b.project_name] && notes[b.project_name].length > 0;
-
-        // 1. Proyek dengan Notes di atas
         if (aHasNotes && !bHasNotes) return -1;
         if (!aHasNotes && bHasNotes) return 1;
-
-        // 2. Sort by Last Update Date (Latest First)
         const dateA = a.last_update_date ? new Date(a.last_update_date).getTime() : 0;
         const dateB = b.last_update_date ? new Date(b.last_update_date).getTime() : 0;
         return dateB - dateA;
     });
-    // UPDATED: Limit menjadi 10
     return sorted.slice(0, 10);
-  }, [filteredProjects, notes]); // Changed dependency to filteredProjects
+  }, [filteredProjects, notes]);
 
   const uniqueOwners = useMemo(() => ['All', ...new Set(data.map(d => d.owner).filter(o => o && o.toLowerCase() !== 'owner').sort())], [data]);
   const uniquePics = useMemo(() => ['All', ...new Set(data.map(d => d.pic).filter(p => p && !p.toLowerCase().includes('pic utama') && !p.toLowerCase().includes('pic support')).sort())], [data]);
@@ -512,7 +506,7 @@ export default function App() {
   // --- REUSABLE HEADER CELL ---
   const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
       <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0' : ''}`} 
         onClick={() => onSort(sortKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -619,8 +613,11 @@ export default function App() {
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-left">PIC</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Barecost</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Penawaran</th>
-                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Status</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Kontrak</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">GPM Offer</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">GPM Cont</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Last Update</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Status</th>
                                 <th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
                             </tr>
                             </thead><tbody className="divide-y divide-slate-100">
@@ -636,8 +633,11 @@ export default function App() {
                                     <td className="px-6 py-4 text-sm align-top pt-4 whitespace-nowrap">{project.pic}</td>
                                     <td className="px-6 py-4 text-right font-mono text-sm text-slate-500 align-top pt-4 whitespace-nowrap">{formatCurrency(project.barecost)}</td>
                                     <td className="px-6 py-4 text-right font-mono text-sm text-slate-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.penawaran)}</td>
-                                    <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
+                                    <td className="px-6 py-4 text-right font-mono text-sm text-blue-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.kontrak)}</td>
+                                    <td className="px-6 py-4 text-right font-mono text-sm text-emerald-600 font-bold align-top pt-4">{formatPercent(project.gpm_offer_pct)}</td>
+                                    <td className="px-6 py-4 text-right font-mono text-sm text-blue-600 font-bold align-top pt-4">{formatPercent(project.gpm_contract_pct)}</td>
                                     <td className="px-6 py-4 text-center text-sm text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
+                                    <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
                                     <td className="px-6 py-4 text-center align-top pt-4">
                                         <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes[project.project_name]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
                                             <FileText size={18} />{notes[project.project_name]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
@@ -712,7 +712,7 @@ export default function App() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">{activeProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody>
-                                </table>
+                                    </table>
                             </div>
                         </div>
                     </Card>
