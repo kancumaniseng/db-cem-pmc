@@ -185,11 +185,26 @@ const StatusProgressLabel = ({ text }) => {
     return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${style} ml-2`}>{text}</span>;
 };
 
-const LoadBadge = ({ status }) => {
+const LoadBadge = ({ count, lowLimit, highLimit }) => {
     let color = "bg-emerald-100 text-emerald-700";
-    if (status && status.includes("OVERLOAD")) color = "bg-red-100 text-red-700";
-    else if (status && (status.includes("UNDERLOAD") || status.includes("IDLE"))) color = "bg-amber-100 text-amber-700";
-    return <span className={`text-[10px] font-bold px-2 py-1 rounded ${color}`}>{status}</span>;
+    let text = "IDEAL";
+    
+    if (count > highLimit) {
+        color = "bg-red-100 text-red-700";
+        text = "OVERLOAD";
+    } else if (count === 0) {
+        color = "bg-slate-100 text-slate-600";
+        text = "IDLE";
+    } else if (count < lowLimit) {
+        color = "bg-blue-100 text-blue-700";
+        text = "UNDERLOAD";
+    }
+
+    return (
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${color}`}>
+            {text}
+        </span>
+    );
 };
 
 const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
@@ -201,7 +216,7 @@ const KPICard = ({ title, value, subtext, icon: Icon, colorClass }) => (
             </div>
             <div className="p-3 bg-slate-50 rounded-xl text-slate-500 flex-shrink-0"><Icon size={24} /></div>
         </div>
-        {subtext && <div className="mt-auto pt-3 border-t border-slate-50 text-xs font-medium truncate">{subtext}</div>}
+        {subtext && <div className="mt-auto pt-3 border-t border-slate-50 text-xs font-medium">{subtext}</div>}
     </Card>
 );
 
@@ -234,8 +249,8 @@ const ProjectRow = ({ project, setSelectedProjectForNotes, notes }) => (
         <td className="px-6 py-4 text-center text-sm text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
         <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
         <td className="px-6 py-4 text-center align-top pt-4">
-            <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes[project.project_name]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
-                <FileText size={18} />{notes[project.project_name]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
+            <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes && notes[project.id]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
+                <FileText size={18} />{notes && notes[project.id]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
             </button>
         </td>
     </tr>
@@ -255,7 +270,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.5</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.6 (Stable Fix)</p>
             </div>
         </div>
     );
@@ -316,7 +331,7 @@ export default function App() {
   const handleLogin = (role) => { const newAuth = { isAuth: true, role }; setAuth(newAuth); localStorage.setItem('cost_dashboard_auth_state', JSON.stringify(newAuth)); if (role === 'guest') setProfitViewMode('owner'); setAdminPassInput(passwords.admin); setGuestPassInput(passwords.guest); setActiveTab('dashboard'); };
   const handleLogout = () => { setAuth({ isAuth: false, role: null }); localStorage.removeItem('cost_dashboard_auth_state'); setActiveTab('dashboard'); };
   const handleSavePasswords = () => { if (!adminPassInput || !guestPassInput) return; const newPasswords = { admin: adminPassInput, guest: guestPassInput }; setPasswords(newPasswords); localStorage.setItem('cost_dashboard_passwords', JSON.stringify(newPasswords)); setPassSaveStatus("Tersimpan!"); setTimeout(() => setPassSaveStatus(""), 3000); };
-  const updateLoadThresholds = (key, value) => { const newThresholds = { ...loadSettings, [key]: parseInt(value) }; setLoadThresholds(newThresholds); localStorage.setItem('cost_dashboard_load_settings', JSON.stringify(newThresholds)); };
+  const updateLoadThresholds = (key, value) => { const newThresholds = { ...loadSettings, [key]: parseInt(value) }; setLoadSettings(newThresholds); localStorage.setItem('cost_dashboard_load_settings', JSON.stringify(newThresholds)); };
 
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
@@ -331,95 +346,49 @@ export default function App() {
               if (columns.length < 5) return null; 
               const clean = (val) => val ? val.trim().replace(/^"|"$/g, '') : "";
               
-              // Kolom 1: JUDUL PEKERJAAN
               const projName = clean(columns[1]);
               if (projName.toUpperCase() === 'JUDUL PEKERJAAN') return null;
               if (projName.toLowerCase().includes('total') || projName.toLowerCase().includes('jumlah')) return null;
               if (!projName) return null;
               if (!isNaN(parseFloat(projName)) && isFinite(projName)) return null;
 
-              // Kolom 4: PIC Utama
               const picName = clean(columns[4]); 
               if (!isNaN(parseFloat(picName)) && isFinite(picName)) return null;
               if (picName.includes('%')) return null;
 
               const parseMoney = (val) => { if (!val) return 0; let cleanStr = val.replace(/Rp|rp|\s/g, ''); if (cleanStr.includes('.') && cleanStr.includes(',')) cleanStr = cleanStr.replace(/\./g, '').replace(',', '.'); else if (cleanStr.match(/\.\d{3}/) && !cleanStr.includes(',')) cleanStr = cleanStr.replace(/\./g, ''); else if (cleanStr.includes(',')) cleanStr = cleanStr.replace(/,/g, ''); return parseFloat(cleanStr) || 0; };
               
-              // MAPPING TERBARU BERDASARKAN HEADER BARU (Urutan Kolom)
-              // 11: STATUS
-              // 12: PROGRESS
-              // 13: LAST PROGRESS (Untuk komentar tindak lanjut)
-              // 16: STATUS PROGRESS
-              // 18: NILAI BARECOST
-              // 19: NILAI PENAWARAN
-              // 20: NILAI KONTRAK
-              // 24: GPM Offer
-              // 25: GPM Kontrak
-
-              const colProgressText = clean(columns[12]); // PROGRESS (Untuk Tanggal Update & Persentase)
-              const colComment = clean(columns[13]);      // LAST PROGRESS (Untuk Catatan)
+              const colProgressText = clean(columns[12]); 
+              const colComment = clean(columns[13]); 
               
-              let progressVal = 0; 
-              const pctMatch = colProgressText.match(/(\d+(?:[.,]\d+)?)%/);
-              if (pctMatch) {
-                  progressVal = parseFloat(pctMatch[1].replace(',', '.'));
-              } else { 
-                  const backupProgress = parseFloat(clean(columns[16]).replace(/%|,/g, '')); // Fallback ke STATUS PROGRESS
-                  if (!isNaN(backupProgress)) progressVal = (backupProgress <= 1 && backupProgress > 0) ? backupProgress * 100 : backupProgress; 
-              }
-
+              let progressVal = 0; const pctMatch = colProgressText.match(/(\d+(?:[.,]\d+)?)%/);
+              if (pctMatch) progressVal = parseFloat(pctMatch[1].replace(',', '.'));
+              else { const backupProgress = parseFloat(clean(columns[16]).replace(/%|,/g, '')); if (!isNaN(backupProgress)) progressVal = (backupProgress <= 1 && backupProgress > 0) ? backupProgress * 100 : backupProgress; }
               const parseDateFromText = (text) => { if (!text) return null; let match = text.trim().match(/^(\d{2})[\.\-\/](\d{2})[\.\-\/](\d{2,4})/); if (!match) match = text.trim().match(/^(\d{2})(\d{2})(\d{2})/); if (match) { let year = parseInt(match[3]); if (year < 100) year += 2000; return new Date(year, parseInt(match[2]) - 1, parseInt(match[1])); } return null; };
-              const lastUpdateDate = parseDateFromText(colProgressText); // Ambil tanggal dari kolom PROGRESS
+              const lastUpdateDate = parseDateFromText(colProgressText);
               
-              let rawStatus = clean(columns[11]); // STATUS
-              if (!rawStatus || rawStatus === "-") { 
-                  if (progressVal >= 100) rawStatus = "Completed"; 
-                  else if (progressVal > 0) rawStatus = "In Progress"; 
-                  else rawStatus = "Planned"; 
-              }
+              let rawStatus = clean(columns[11]); 
+              if (!rawStatus || rawStatus === "-") { if (progressVal >= 100) rawStatus = "Completed"; else if (progressVal > 0) rawStatus = "In Progress"; else rawStatus = "Planned"; }
               
-              const barecost = parseMoney(columns[18]); // NILAI BARECOST
-              const penawaran = parseMoney(columns[19]); // NILAI PENAWARAN
-              const kontrak = parseMoney(columns[20]); // NILAI KONTRAK
+              const barecost = parseMoney(columns[18]); 
+              const penawaran = parseMoney(columns[19]); 
+              const kontrak = parseMoney(columns[20]); 
               
-              let gpm_offer_raw = parseMoney(columns[24]); // GPM Offer
-              let gpm_contract_raw = parseMoney(columns[25]); // GPM Kontrak
+              let gpm_offer_raw = parseMoney(columns[24]); 
+              let gpm_contract_raw = parseMoney(columns[25]); 
               
               let gpm_offer_pct = (gpm_offer_raw > 100 && penawaran > 0) ? (gpm_offer_raw/penawaran)*100 : (gpm_offer_raw <= 1 ? gpm_offer_raw*100 : gpm_offer_raw);
               let gpm_contract_pct = (gpm_contract_raw > 100 && kontrak > 0) ? (gpm_contract_raw/kontrak)*100 : (gpm_contract_raw <= 1 ? gpm_contract_raw*100 : gpm_contract_raw);
+              const specificStatus = clean(columns[16]); 
               
-              const specificStatus = clean(columns[16]); // STATUS PROGRESS
-              
-              // GABUNGKAN SEMUA PIC SUPPORT (Kolom 5, 6, 7, 8, 9)
-              const picSupport = [
-                  clean(columns[5]), 
-                  clean(columns[6]), 
-                  clean(columns[7]), 
-                  clean(columns[8]), 
-                  clean(columns[9])
-              ].filter(s => s && s !== "-" && s.length > 2).join(", ");
-              
+              const picSupport = [ clean(columns[5]), clean(columns[6]), clean(columns[7]), clean(columns[8]), clean(columns[9]) ].filter(s => s && s !== "-" && s.length > 2).join(", ");
               const tindakLanjut = colComment ? `${colProgressText}\n\n[Last Update]:\n${colComment}` : colProgressText;
 
               return {
-                  id: index, 
-                  project_name: projName, 
-                  department: clean(columns[2]), // DIREKTORAT
-                  owner: clean(columns[3]) || "General", // OWNER
-                  pic: picName, 
-                  pic_support: picSupport,
-                  progress: progressVal, 
-                  tindak_lanjut: tindakLanjut, 
-                  last_update_date: lastUpdateDate, 
-                  status: rawStatus, 
-                  specific_status: specificStatus,
-                  barecost, 
-                  penawaran, 
-                  kontrak, 
-                  gpm_offer_val: (gpm_offer_pct/100) * penawaran, 
-                  gpm_contract_val: (gpm_contract_pct/100) * kontrak,
-                  gpm_offer_pct: gpm_offer_pct || 0, 
-                  gpm_contract_pct: gpm_contract_pct || 0,
+                  id: index, project_name: projName, department: clean(columns[2]), owner: clean(columns[3]) || "General", pic: picName, pic_support: picSupport,
+                  progress: progressVal, tindak_lanjut: tindakLanjut, last_update_date: lastUpdateDate, status: rawStatus, specific_status: specificStatus,
+                  barecost, penawaran, kontrak, gpm_offer_val: (gpm_offer_pct/100) * penawaran, gpm_contract_val: (gpm_contract_pct/100) * kontrak,
+                  gpm_offer_pct: gpm_offer_pct || 0, gpm_contract_pct: gpm_contract_pct || 0,
               };
           }).filter(item => item !== null && item.project_name);
           setData(parsedData);
@@ -430,70 +399,32 @@ export default function App() {
   }, []);
   useEffect(() => { if(auth.isAuth) fetchData(); }, [auth.isAuth, fetchData]);
 
-  const handleAddNote = () => { if (!newNote.trim()) return; const timestamp = new Date().toLocaleString('id-ID'); const projectKey = selectedProjectForNotes.project_name; const projectNotes = notes[projectKey] || []; const updatedNotes = { ...notes, [projectKey]: [...projectNotes, { id: Date.now(), text: newNote, time: timestamp }] }; setNotes(updatedNotes); localStorage.setItem('cost_dashboard_notes_v8', JSON.stringify(updatedNotes)); setNewNote(""); };
-  const handleDeleteNote = (noteId) => { const projectKey = selectedProjectForNotes.project_name; const projectNotes = notes[projectKey].filter(n => n.id !== noteId); const updatedNotes = { ...notes, [projectKey]: projectNotes }; setNotes(updatedNotes); localStorage.setItem('cost_dashboard_notes_v8', JSON.stringify(updatedNotes)); };
-  const saveEditedNote = (noteId) => { const projectKey = selectedProjectForNotes.project_name; const projectNotes = notes[projectKey].map(n => { if (n.id === noteId) return { ...n, text: editingText }; return n; }); const updatedNotes = { ...notes, [projectKey]: projectNotes }; setNotes(updatedNotes); localStorage.setItem('cost_dashboard_notes_v8', JSON.stringify(updatedNotes)); setEditingNoteId(null); };
+  const handleAddNote = () => { if (!newNote.trim()) return; const timestamp = new Date().toLocaleString('id-ID'); const projectNotes = notes[selectedProjectForNotes.id] || []; const updatedNotes = { ...notes, [selectedProjectForNotes.id]: [...projectNotes, { id: Date.now(), text: newNote, time: timestamp }] }; setNotes(updatedNotes); localStorage.setItem('cost_dashboard_notes_v8', JSON.stringify(updatedNotes)); setNewNote(""); };
+  const handleDeleteNote = (noteId) => { const projectNotes = notes[selectedProjectForNotes.id].filter(n => n.id !== noteId); const updatedNotes = { ...notes, [selectedProjectForNotes.id]: projectNotes }; setNotes(updatedNotes); localStorage.setItem('cost_dashboard_notes_v8', JSON.stringify(updatedNotes)); };
+  const saveEditedNote = (noteId) => { const projectNotes = notes[selectedProjectForNotes.id].map(n => { if (n.id === noteId) return { ...n, text: editingText }; return n; }); const updatedNotes = { ...notes, [selectedProjectForNotes.id]: projectNotes }; setNotes(updatedNotes); localStorage.setItem('cost_dashboard_notes_v8', JSON.stringify(updatedNotes)); setEditingNoteId(null); };
   const startEditingNote = (note) => { setEditingNoteId(note.id); setEditingText(note.text); };
   const requestSort = (key) => { let direction = 'asc'; if (sortConfig.key === key && sortConfig.direction === 'asc') { direction = 'desc'; } setSortConfig({ key, direction }); };
   const handlePicClick = (picName) => { setActivePicFilter(activePicFilter === picName ? null : picName); if (activeTab !== 'team') setActiveTab('team'); };
 
   // STATS
   const stats = useMemo(() => {
-    let totalBarecost = 0;
-    let totalPenawaran = 0;
-    let totalKontrak = 0;
-    
-    let sumBarecostForOffer = 0;
-    let sumOffer = 0;
-    let sumBarecostForContract = 0;
-    let sumContract = 0;
-    let countContract = 0;
-
-    let countOverdue = 0;
-    let countCritical = 0;
-    let countNearCritical = 0;
+    let totalBarecost = 0; let totalPenawaran = 0; let totalKontrak = 0;
+    let sumBarecostForOffer = 0; let sumOffer = 0; let sumBarecostForContract = 0; let sumContract = 0; let countContract = 0;
+    let countOverdue = 0; let countCritical = 0; let countNearCritical = 0;
 
     data.forEach(d => {
-        totalBarecost += d.barecost;
-        totalPenawaran += d.penawaran;
-        totalKontrak += d.kontrak;
-
-        if (d.penawaran > 0) {
-            sumOffer += d.penawaran;
-            sumBarecostForOffer += d.barecost;
-        }
-
-        if (d.kontrak > 0) {
-            sumContract += d.kontrak;
-            sumBarecostForContract += d.barecost;
-            countContract++;
-        }
-
+        totalBarecost += d.barecost; totalPenawaran += d.penawaran; totalKontrak += d.kontrak;
+        if (d.penawaran > 0) { sumOffer += d.penawaran; sumBarecostForOffer += d.barecost; }
+        if (d.kontrak > 0) { sumContract += d.kontrak; sumBarecostForContract += d.barecost; countContract++; }
         const s = (d.specific_status || "").toUpperCase();
-        if (s.includes("NEAR CRITICAL")) countNearCritical++; 
-        else if (s.includes("OVERDUE") || s.includes("TERLAMBAT")) countOverdue++; 
-        else if (s.includes("CRITICAL") || s.includes("KRITIS")) countCritical++;
+        if (s.includes("NEAR CRITICAL")) countNearCritical++; else if (s.includes("OVERDUE") || s.includes("TERLAMBAT")) countOverdue++; else if (s.includes("CRITICAL") || s.includes("KRITIS")) countCritical++;
     });
 
     const avgGPMOffer = sumOffer > 0 ? ((sumOffer - sumBarecostForOffer) / sumOffer) * 100 : 0;
     const avgGPMContract = sumContract > 0 ? ((sumContract - sumBarecostForContract) / sumContract) * 100 : 0;
-
     const doneProjects = data.filter(p => checkIsDone(p.status, p.progress)).length;
 
-    return { 
-        totalProjects: data.length, 
-        totalBarecost, 
-        totalPenawaran, 
-        totalKontrak, 
-        avgGPMOffer, 
-        avgGPMContract,
-        countContract, 
-        countOverdue, 
-        countCritical, 
-        countNearCritical, 
-        doneProjects, 
-        ongoingProjects: data.length - doneProjects 
-    };
+    return { totalProjects: data.length, totalBarecost, totalPenawaran, totalKontrak, avgGPMOffer, avgGPMContract, countContract, countOverdue, countCritical, countNearCritical, doneProjects, ongoingProjects: data.length - doneProjects };
   }, [data]);
 
   const dynamicLimits = useMemo(() => { const low = Math.floor(stats.totalProjects * (loadSettings.lowPct / 100)); const high = Math.ceil(stats.totalProjects * (loadSettings.highPct / 100)); return { low: low || LOAD_LIMITS.LOW, high: high || LOAD_LIMITS.HIGH }; }, [stats.totalProjects, loadSettings]);
@@ -507,7 +438,7 @@ export default function App() {
 
     data.forEach(p => {
         const picName = p.pic || "Unassigned"; if (picName.toLowerCase().includes("pic utama") || picName.toLowerCase().includes("pic support")) return;
-        const cleanName = picName.trim(); const st = (p.status || "").toLowerCase(); const isDone = checkIsDone(p.status, p.progress);
+        const cleanName = picName.trim(); const isDone = checkIsDone(p.status, p.progress);
         if (!load[cleanName]) load[cleanName] = { name: cleanName, count: 0, doneCount: 0, activeCount: 0, supportCount: 0 };
         load[cleanName].count += 1; if (isDone) load[cleanName].doneCount += 1; else load[cleanName].activeCount += 1;
         
@@ -540,19 +471,26 @@ export default function App() {
   const loadByOwner = useMemo(() => { 
     const load = {}; 
     data.forEach(p => { 
-        const ownerName = p.owner || "Others"; 
-        if (ownerName.toLowerCase() === 'owner') return; 
+        const ownerName = p.owner || "Others"; if (ownerName.toLowerCase() === 'owner') return; 
         const cleanName = ownerName.trim(); 
-        if (!load[cleanName]) load[cleanName] = { name: cleanName, count: 0, value: 0, contractValue: 0 }; 
-        load[cleanName].count += 1; 
-        load[cleanName].value += p.penawaran; 
-        load[cleanName].contractValue += p.kontrak; 
+        if (!load[cleanName]) load[cleanName] = { name: cleanName, count: 0, value: 0, contractValue: 0, barecostValue: 0 }; 
+        load[cleanName].count += 1; load[cleanName].value += p.penawaran; load[cleanName].contractValue += p.kontrak; load[cleanName].barecostValue += p.barecost;
     }); 
     return Object.values(load).sort((a, b) => b.value - a.value); 
   }, [data]);
 
   const statusData = useMemo(() => { const statuses = {}; data.forEach(p => { let st = (p.status || "Unknown").toUpperCase(); if (st.includes("STATUS") || st === "") return; statuses[st] = (statuses[st] || 0) + 1; }); return Object.keys(statuses).map(key => ({ name: key, value: statuses[key] })).sort((a, b) => b.value - a.value); }, [data]);
-  const profitData = useMemo(() => { let filtered = showAllProfitability ? data : data.filter(d => checkIsDone(d.status, d.progress)); const aggMap = {}; const key = profitViewMode === 'owner' ? 'owner' : 'pic'; filtered.forEach(p => { let name = p[key] || "Others"; if (key === 'pic' && (name.toLowerCase().includes("pic utama") || name.toLowerCase().includes("pic support"))) return; if (key === 'owner' && name.toLowerCase() === 'owner') return; if (!aggMap[name]) aggMap[name] = { name, offer: 0, contract: 0, gv_offer: 0, gv_contract: 0 }; aggMap[name].offer += p.penawaran; aggMap[name].contract += p.kontrak; aggMap[name].gv_offer += (p.gpm_offer_pct/100)*p.penawaran; aggMap[name].gv_contract += (p.gpm_contract_pct/100)*p.kontrak; }); return Object.values(aggMap).map(o => ({ name: o.name, gpm_offer_pct: o.offer > 0 ? (o.gv_offer/o.offer)*100 : 0, gpm_contract_pct: o.contract > 0 ? (o.gv_contract/o.contract)*100 : 0 })).sort((a,b) => b.gpm_contract_pct - a.gpm_contract_pct).slice(0, 10); }, [data, showAllProfitability, profitViewMode]);
+  
+  const profitData = useMemo(() => { 
+      let filtered = showAllProfitability ? data : data.filter(d => checkIsDone(d.status, d.progress)); 
+      const aggMap = {}; const key = profitViewMode === 'owner' ? 'owner' : 'pic'; 
+      filtered.forEach(p => { 
+          let name = p[key] || "Others"; if (key === 'pic' && (name.toLowerCase().includes("pic utama") || name.toLowerCase().includes("pic support"))) return; if (key === 'owner' && name.toLowerCase() === 'owner') return; 
+          if (!aggMap[name]) aggMap[name] = { name, offer: 0, contract: 0, gv_offer: 0, gv_contract: 0 }; 
+          aggMap[name].offer += p.penawaran; aggMap[name].contract += p.kontrak; aggMap[name].gv_offer += (p.gpm_offer_pct/100)*p.penawaran; aggMap[name].gv_contract += (p.gpm_contract_pct/100)*p.kontrak; 
+      }); 
+      return Object.values(aggMap).map(o => ({ name: o.name, gpm_offer_pct: o.offer > 0 ? (o.gv_offer/o.offer)*100 : 0, gpm_contract_pct: o.contract > 0 ? (o.gv_contract/o.contract)*100 : 0 })).sort((a,b) => b.gpm_contract_pct - a.gpm_contract_pct).slice(0, 10); 
+  }, [data, showAllProfitability, profitViewMode]);
   
   const filteredProjects = useMemo(() => { 
       let filtered = data.filter(p => { 
@@ -563,12 +501,9 @@ export default function App() {
           const matchesActivePic = !activePicFilter || p.pic === activePicFilter;
           const matchesProgress = filterProgressStatus === 'All' || (() => {
               const status = (p.specific_status || "").toUpperCase();
-              if (filterProgressStatus === 'CRITICAL') {
-                  return status.includes('CRITICAL') && !status.includes('NEAR');
-              }
+              if (filterProgressStatus === 'CRITICAL') return status.includes('CRITICAL') && !status.includes('NEAR');
               return status.includes(filterProgressStatus);
           })();
-          
           return matchesSearch && matchesOwner && matchesPic && matchesStatus && matchesActivePic && matchesProgress; 
       }); 
       filtered.sort((a, b) => { 
@@ -585,10 +520,10 @@ export default function App() {
   const doneProjectsList = useMemo(() => filteredProjects.filter(p => checkIsDone(p.status, p.progress)), [filteredProjects]);
   
   const dashboardProjects = useMemo(() => {
-    let sorted = [...data]; 
+    let sorted = [...data];
     sorted.sort((a, b) => {
-        const aHasNotes = notes[a.project_name] && notes[a.project_name].length > 0;
-        const bHasNotes = notes[b.project_name] && notes[b.project_name].length > 0;
+        const aHasNotes = notes[a.id] && notes[a.id].length > 0;
+        const bHasNotes = notes[b.id] && notes[b.id].length > 0;
         if (aHasNotes && !bHasNotes) return -1;
         if (!aHasNotes && bHasNotes) return 1;
         const dateA = a.last_update_date ? new Date(a.last_update_date).getTime() : 0;
@@ -598,9 +533,9 @@ export default function App() {
     return sorted.slice(0, 10);
   }, [data, notes]);
 
-  const uniqueOwners = useMemo(() => ['All', ...new Set(data.map(d => d.owner).filter(o => o && o.toLowerCase() !== 'owner').sort())], [data]);
-  const uniquePics = useMemo(() => ['All', ...new Set(data.map(d => d.pic).filter(p => p && !p.toLowerCase().includes('pic utama') && !p.toLowerCase().includes('pic support')).sort())], [data]);
-  const uniqueStatuses = useMemo(() => ['All', ...new Set(data.map(d => d.status).filter(s => s && !s.toLowerCase().includes('status')).sort())], [data]);
+  const uniqueOwners = useMemo(() => ['All', ...new Set(data.map(d => d.owner).filter(Boolean).sort())], [data]);
+  const uniquePics = useMemo(() => ['All', ...new Set(data.map(d => d.pic).filter(Boolean).sort())], [data]);
+  const uniqueStatuses = useMemo(() => ['All', ...new Set(data.map(d => d.status).filter(Boolean).sort())], [data]);
   const uniqueProgressStatuses = ['All', 'CRITICAL', 'OVERDUE', 'NEAR CRITICAL'];
 
   const menuItems = useMemo(() => {
@@ -608,18 +543,6 @@ export default function App() {
     if (auth.role === 'admin') { base.push({ id: 'team', label: 'Load Tim (PIC)', icon: Users }); base.push({ id: 'owners', label: 'List Owner', icon: Building2 }); base.push({ id: 'settings', label: 'Master Settings', icon: Settings }); }
     return base;
   }, [auth.role]);
-
-  // --- REUSABLE HEADER CELL ---
-  const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
-      <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
-        onClick={() => onSort(sortKey)}
-      >
-        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
-          {label}<ArrowUpDown size={12} className={`text-slate-300 ${currentSort.key === sortKey ? 'text-emerald-600' : 'group-hover:text-slate-400'}`} />
-        </div>
-      </th>
-  );
 
   if (isAuthChecking) return null;
   if (!auth.isAuth) return <LoginScreen onLogin={handleLogin} currentPasswords={passwords} />;
@@ -717,7 +640,7 @@ export default function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <Card className="lg:col-span-2 p-6">
                         <div className="flex justify-between items-center mb-6"><div><h3 className="font-bold text-lg text-slate-800">Analisa Profitabilitas (Avg GPM %)</h3><p className="text-xs text-slate-400 mt-1">{profitViewMode === 'owner' ? "By Owner (Weighted Avg)" : "By PIC (Weighted Avg)"}</p></div><div className="flex gap-2 bg-slate-100 p-1 rounded-lg">{auth.role === 'admin' && <button onClick={() => setProfitViewMode('pic')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'pic' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Users size={14} /> By PIC</button>}<button onClick={() => setProfitViewMode('owner')} className={`text-xs px-3 py-1.5 rounded-md font-bold flex items-center gap-2 transition-all ${profitViewMode === 'owner' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Building2 size={14} /> By Owner</button></div></div>
-                        <div className="h-80"><ResponsiveContainer width="100%" height="100%"><BarChart data={profitData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" /><XAxis dataKey="name" tick={{fontSize: 12, fill: '#64748B', fontWeight: 'bold'}} tickFormatter={(val) => val && val.length > 8 ? val.substring(0, 6) + '...' : val} /><YAxis tickFormatter={(val) => `${val.toFixed(0)}%`} tick={{fontSize: 12, fill: '#64748B'}} /><Tooltip formatter={(val) => `${val.toFixed(1)}%`} /><Bar dataKey="gpm_offer_pct" name="GPM Penawaran" fill="#10B981" radius={[4, 4, 0, 0]} /><Bar dataKey="gpm_contract_pct" name="GPM Kontrak" fill="#3B82F6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
+                        <div className="h-80"><ResponsiveContainer width="100%" height="100%"><BarChart data={profitData}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" /><XAxis dataKey="name" tick={{fontSize: 12, fill: '#64748B', fontWeight: 'bold'}} tickFormatter={(val) => val && val.length > 8 ? val.substring(0, 6) + '...' : val} /><YAxis tickFormatter={(val) => `${val.toFixed(0)}%`} tick={{fontSize: 12, fill: '#64748B'}} /><Tooltip formatter={(val) => `${Number(val).toFixed(1)}%`} /><Bar dataKey="gpm_offer_pct" name="GPM Penawaran" fill="#10B981" radius={[4, 4, 0, 0]} /><Bar dataKey="gpm_contract_pct" name="GPM Kontrak" fill="#3B82F6" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
                     </Card>
                     <Card className="p-6">
                         <h3 className="font-bold text-lg text-slate-800 mb-6 text-center">Status Proyek (Nominal)</h3>
@@ -758,8 +681,8 @@ export default function App() {
                                     <td className="px-6 py-4 text-center text-sm text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
                                     <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
                                     <td className="px-6 py-4 text-center align-top pt-4">
-                                        <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes[project.project_name]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
-                                            <FileText size={18} />{notes[project.project_name]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
+                                        <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes[project.id]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
+                                            <FileText size={18} />{notes[project.id]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
                                         </button>
                                     </td>
                                 </tr>
@@ -782,7 +705,7 @@ export default function App() {
                             {loadByPic.map((pic, idx) => (
                                 <div key={idx} onClick={() => handlePicClick(pic.name)} className={`p-4 rounded-lg border cursor-pointer transition-all ${activePicFilter === pic.name ? 'bg-violet-50 border-violet-400' : 'bg-slate-50 hover:bg-slate-100 border-slate-100'}`}>
                                     <div className="flex justify-between items-start">
-                                        <div><p className="font-bold text-slate-800">{pic.name}</p><div className="flex gap-2 text-[10px] font-bold mt-1"><span className="bg-slate-200 px-1.5 py-0.5 rounded text-slate-600 uppercase">Total {pic.count}</span><LoadBadge status={pic.statusText} /></div><div className="flex gap-2 text-[10px] text-slate-500 mt-2 font-medium"><span className="text-blue-600">ONGOING {pic.activeCount}</span><span className="text-slate-300">|</span><span className="text-emerald-600">DONE {pic.doneCount}</span><span className="text-slate-300">|</span><span className="text-indigo-600 font-semibold">SUP {pic.supportCount}</span></div></div>
+                                        <div><p className="font-bold text-slate-800">{pic.name}</p><div className="flex gap-2 text-[10px] font-bold mt-1"><span className="bg-slate-200 px-1.5 py-0.5 rounded text-slate-600 uppercase">Total {pic.count}</span><LoadBadge count={pic.count} lowLimit={dynamicLimits.low} highLimit={dynamicLimits.high} /></div><div className="flex gap-2 text-[10px] text-slate-500 mt-2 font-medium"><span className="text-blue-600">ONGOING {pic.activeCount}</span><span className="text-slate-300">|</span><span className="text-emerald-600">DONE {pic.doneCount}</span><span className="text-slate-300">|</span><span className="text-indigo-600 font-semibold">SUP {pic.supportCount}</span></div></div>
                                         <span className="text-2xl font-black text-violet-600 opacity-80">{pic.count}</span>
                                     </div>
                                 </div>
@@ -830,7 +753,12 @@ export default function App() {
                                             <SortableHeader label="Nama Pekerjaan" sortKey="project_name" currentSort={sortConfig} onSort={requestSort} stickyLeft={true} /><SortableHeader label="PIC" sortKey="pic" currentSort={sortConfig} onSort={requestSort}/><SortableHeader label="Barecost" sortKey="barecost" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Penawaran" sortKey="penawaran" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Kontrak" sortKey="kontrak" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="GPM Offer" sortKey="gpm_offer_pct" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="GPM Cont" sortKey="gpm_contract_pct" currentSort={sortConfig} onSort={requestSort} align="right"/><SortableHeader label="Update" sortKey="last_update_date" currentSort={sortConfig} onSort={requestSort} align="center"/><SortableHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={requestSort} align="center"/><th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-100">{activeProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}</tbody>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {activeProjectsList.length === 0 && (
+                                            <tr><td colSpan="10" className="text-center py-8 text-slate-400">Tidak ada proyek aktif.</td></tr>
+                                        )}
+                                        {activeProjectsList.map(project => <ProjectRow key={project.id} project={project} setSelectedProjectForNotes={setSelectedProjectForNotes} notes={notes} />)}
+                                    </tbody>
                                 </table>
                             </div>
                         </div>
@@ -875,6 +803,7 @@ export default function App() {
                                     <th className="px-6 py-4 w-12 text-center sticky top-0 bg-slate-50 shadow-sm">No</th>
                                     <th className="px-6 py-4 sticky top-0 bg-slate-50 shadow-sm">Nama Owner</th>
                                     <th className="px-6 py-4 text-center sticky top-0 bg-slate-50 shadow-sm">Jumlah Proyek</th>
+                                    <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Total Nilai Barecost</th>
                                     <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Total Nilai Penawaran</th>
                                     <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Avg GPM Penawaran</th>
                                     <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Avg GPM Kontrak</th>
@@ -895,6 +824,7 @@ export default function App() {
                                             <td className="px-6 py-4 text-center text-sm text-slate-400">{idx + 1}</td>
                                             <td className="px-6 py-4 font-medium text-sm text-slate-700 flex items-center gap-2"><div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Building2 size={16}/></div>{owner.name}</td>
                                             <td className="px-6 py-4 text-center"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold text-sm">{owner.count}</span></td>
+                                            <td className="px-6 py-4 text-right font-mono text-sm text-slate-700">{formatCurrency(owner.barecostValue)}</td>
                                             <td className="px-6 py-4 text-right font-mono text-sm text-slate-700">{formatCurrency(owner.value)}</td>
                                             <td className="px-6 py-4 text-right"><span className={`font-bold text-sm ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td>
                                             <td className="px-6 py-4 text-right"><span className={`font-bold text-sm ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td>
@@ -942,10 +872,10 @@ export default function App() {
                         <p className="text-sm text-slate-700 italic mt-2 leading-relaxed bg-white/50 p-2 rounded border border-blue-50 whitespace-pre-wrap">{selectedProjectForNotes.tindak_lanjut || "Tidak ada catatan"}</p>
                     </div>
                     <div className="border-t border-slate-200 my-2 relative"><span className="absolute -top-2.5 left-4 bg-slate-50 px-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">Manual History</span></div>
-                    {(!notes[selectedProjectForNotes.project_name] || notes[selectedProjectForNotes.project_name].length === 0) ? (
+                    {(!notes[selectedProjectForNotes.id] || notes[selectedProjectForNotes.id].length === 0) ? (
                         <div className="text-center text-slate-300 py-8"><FileText size={48} className="mx-auto opacity-10 mb-2"/><p className="text-xs font-bold uppercase tracking-widest">Belum ada history</p></div>
                     ) : (
-                        notes[selectedProjectForNotes.project_name].map((note) => (
+                        notes[selectedProjectForNotes.id].map((note) => (
                             <div key={note.id} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm group hover:border-emerald-200 transition-all">
                                 <div className="flex justify-between items-start mb-1 text-[9px] text-slate-400 font-bold">
                                     <span>{note.time}</span>
