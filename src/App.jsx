@@ -255,7 +255,7 @@ const LoginScreen = ({ onLogin, currentPasswords }) => {
                     <div><input type="password" className={`w-full px-4 py-3 rounded-xl border ${error ? 'border-red-300 ring-2 ring-red-100' : 'border-slate-300 focus:ring-2 focus:ring-emerald-200'} outline-none text-center text-sm transition-all`} placeholder="PIN Akses" value={input} onChange={(e) => {setInput(e.target.value); setError(false)}} autoFocus />{error && <p className="text-[10px] text-red-500 text-center mt-2">PIN salah. Silakan coba lagi.</p>}</div>
                     <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-bold text-sm transition-all shadow-lg shadow-emerald-200">Masuk Dashboard</button>
                 </form>
-                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.6</p>
+                <p className="text-[10px] text-slate-400 text-center mt-6">Versi Final 1.0.5</p>
             </div>
         </div>
     );
@@ -330,42 +330,96 @@ export default function App() {
           const parsedData = dataRows.map((columns, index) => {
               if (columns.length < 5) return null; 
               const clean = (val) => val ? val.trim().replace(/^"|"$/g, '') : "";
+              
+              // Kolom 1: JUDUL PEKERJAAN
               const projName = clean(columns[1]);
               if (projName.toUpperCase() === 'JUDUL PEKERJAAN') return null;
               if (projName.toLowerCase().includes('total') || projName.toLowerCase().includes('jumlah')) return null;
               if (!projName) return null;
               if (!isNaN(parseFloat(projName)) && isFinite(projName)) return null;
 
+              // Kolom 4: PIC Utama
               const picName = clean(columns[4]); 
               if (!isNaN(parseFloat(picName)) && isFinite(picName)) return null;
               if (picName.includes('%')) return null;
 
               const parseMoney = (val) => { if (!val) return 0; let cleanStr = val.replace(/Rp|rp|\s/g, ''); if (cleanStr.includes('.') && cleanStr.includes(',')) cleanStr = cleanStr.replace(/\./g, '').replace(',', '.'); else if (cleanStr.match(/\.\d{3}/) && !cleanStr.includes(',')) cleanStr = cleanStr.replace(/\./g, ''); else if (cleanStr.includes(',')) cleanStr = cleanStr.replace(/,/g, ''); return parseFloat(cleanStr) || 0; };
               
-              const colProgressText = clean(columns[10]); 
-              const colComment = clean(columns[11]); 
-              let progressVal = 0; const pctMatch = colProgressText.match(/(\d+(?:[.,]\d+)?)%/);
-              if (pctMatch) progressVal = parseFloat(pctMatch[1].replace(',', '.'));
-              else { const backupProgress = parseFloat(clean(columns[14]).replace(/%|,/g, '')); if (!isNaN(backupProgress)) progressVal = (backupProgress <= 1 && backupProgress > 0) ? backupProgress * 100 : backupProgress; }
+              // MAPPING TERBARU BERDASARKAN HEADER BARU (Urutan Kolom)
+              // 11: STATUS
+              // 12: PROGRESS
+              // 13: LAST PROGRESS (Untuk komentar tindak lanjut)
+              // 16: STATUS PROGRESS
+              // 18: NILAI BARECOST
+              // 19: NILAI PENAWARAN
+              // 20: NILAI KONTRAK
+              // 24: GPM Offer
+              // 25: GPM Kontrak
+
+              const colProgressText = clean(columns[12]); // PROGRESS (Untuk Tanggal Update & Persentase)
+              const colComment = clean(columns[13]);      // LAST PROGRESS (Untuk Catatan)
+              
+              let progressVal = 0; 
+              const pctMatch = colProgressText.match(/(\d+(?:[.,]\d+)?)%/);
+              if (pctMatch) {
+                  progressVal = parseFloat(pctMatch[1].replace(',', '.'));
+              } else { 
+                  const backupProgress = parseFloat(clean(columns[16]).replace(/%|,/g, '')); // Fallback ke STATUS PROGRESS
+                  if (!isNaN(backupProgress)) progressVal = (backupProgress <= 1 && backupProgress > 0) ? backupProgress * 100 : backupProgress; 
+              }
+
               const parseDateFromText = (text) => { if (!text) return null; let match = text.trim().match(/^(\d{2})[\.\-\/](\d{2})[\.\-\/](\d{2,4})/); if (!match) match = text.trim().match(/^(\d{2})(\d{2})(\d{2})/); if (match) { let year = parseInt(match[3]); if (year < 100) year += 2000; return new Date(year, parseInt(match[2]) - 1, parseInt(match[1])); } return null; };
-              const lastUpdateDate = parseDateFromText(colProgressText);
+              const lastUpdateDate = parseDateFromText(colProgressText); // Ambil tanggal dari kolom PROGRESS
               
-              let rawStatus = clean(columns[9]); 
-              if (!rawStatus || rawStatus === "-") { if (progressVal >= 100) rawStatus = "Completed"; else if (progressVal > 0) rawStatus = "In Progress"; else rawStatus = "Planned"; }
+              let rawStatus = clean(columns[11]); // STATUS
+              if (!rawStatus || rawStatus === "-") { 
+                  if (progressVal >= 100) rawStatus = "Completed"; 
+                  else if (progressVal > 0) rawStatus = "In Progress"; 
+                  else rawStatus = "Planned"; 
+              }
               
-              const barecost = parseMoney(columns[16]); const penawaran = parseMoney(columns[17]); const kontrak = parseMoney(columns[18]); 
-              let gpm_offer_raw = parseMoney(columns[22]); let gpm_contract_raw = parseMoney(columns[23]); 
+              const barecost = parseMoney(columns[18]); // NILAI BARECOST
+              const penawaran = parseMoney(columns[19]); // NILAI PENAWARAN
+              const kontrak = parseMoney(columns[20]); // NILAI KONTRAK
+              
+              let gpm_offer_raw = parseMoney(columns[24]); // GPM Offer
+              let gpm_contract_raw = parseMoney(columns[25]); // GPM Kontrak
+              
               let gpm_offer_pct = (gpm_offer_raw > 100 && penawaran > 0) ? (gpm_offer_raw/penawaran)*100 : (gpm_offer_raw <= 1 ? gpm_offer_raw*100 : gpm_offer_raw);
               let gpm_contract_pct = (gpm_contract_raw > 100 && kontrak > 0) ? (gpm_contract_raw/kontrak)*100 : (gpm_contract_raw <= 1 ? gpm_contract_raw*100 : gpm_contract_raw);
-              const specificStatus = clean(columns[14]); 
-              const picSupport = [clean(columns[5]), clean(columns[6]), clean(columns[7])].filter(s => s && s !== "-" && s.length > 2).join(", ");
+              
+              const specificStatus = clean(columns[16]); // STATUS PROGRESS
+              
+              // GABUNGKAN SEMUA PIC SUPPORT (Kolom 5, 6, 7, 8, 9)
+              const picSupport = [
+                  clean(columns[5]), 
+                  clean(columns[6]), 
+                  clean(columns[7]), 
+                  clean(columns[8]), 
+                  clean(columns[9])
+              ].filter(s => s && s !== "-" && s.length > 2).join(", ");
+              
               const tindakLanjut = colComment ? `${colProgressText}\n\n[Last Update]:\n${colComment}` : colProgressText;
 
               return {
-                  id: index, project_name: projName, department: clean(columns[2]), owner: clean(columns[3]) || "General", pic: picName, pic_support: picSupport,
-                  progress: progressVal, tindak_lanjut: tindakLanjut, last_update_date: lastUpdateDate, status: rawStatus, specific_status: specificStatus,
-                  barecost, penawaran, kontrak, gpm_offer_val: (gpm_offer_pct/100) * penawaran, gpm_contract_val: (gpm_contract_pct/100) * kontrak,
-                  gpm_offer_pct: gpm_offer_pct || 0, gpm_contract_pct: gpm_contract_pct || 0,
+                  id: index, 
+                  project_name: projName, 
+                  department: clean(columns[2]), // DIREKTORAT
+                  owner: clean(columns[3]) || "General", // OWNER
+                  pic: picName, 
+                  pic_support: picSupport,
+                  progress: progressVal, 
+                  tindak_lanjut: tindakLanjut, 
+                  last_update_date: lastUpdateDate, 
+                  status: rawStatus, 
+                  specific_status: specificStatus,
+                  barecost, 
+                  penawaran, 
+                  kontrak, 
+                  gpm_offer_val: (gpm_offer_pct/100) * penawaran, 
+                  gpm_contract_val: (gpm_contract_pct/100) * kontrak,
+                  gpm_offer_pct: gpm_offer_pct || 0, 
+                  gpm_contract_pct: gpm_contract_pct || 0,
               };
           }).filter(item => item !== null && item.project_name);
           setData(parsedData);
@@ -389,7 +443,6 @@ export default function App() {
     let totalPenawaran = 0;
     let totalKontrak = 0;
     
-    // Variabel untuk perhitungan GPM Weighted
     let sumBarecostForOffer = 0;
     let sumOffer = 0;
     let sumBarecostForContract = 0;
@@ -400,38 +453,31 @@ export default function App() {
     let countCritical = 0;
     let countNearCritical = 0;
 
-    // Loop data untuk akumulasi nilai
     data.forEach(d => {
-        // Total Nominal Global (semua proyek)
         totalBarecost += d.barecost;
         totalPenawaran += d.penawaran;
         totalKontrak += d.kontrak;
 
-        // Hitung GPM Offer (Hanya jika ada nilai penawaran)
         if (d.penawaran > 0) {
             sumOffer += d.penawaran;
             sumBarecostForOffer += d.barecost;
         }
 
-        // Hitung GPM Kontrak (Hanya jika ada nilai kontrak)
         if (d.kontrak > 0) {
             sumContract += d.kontrak;
             sumBarecostForContract += d.barecost;
             countContract++;
         }
 
-        // Hitung Status
         const s = (d.specific_status || "").toUpperCase();
         if (s.includes("NEAR CRITICAL")) countNearCritical++; 
         else if (s.includes("OVERDUE") || s.includes("TERLAMBAT")) countOverdue++; 
         else if (s.includes("CRITICAL") || s.includes("KRITIS")) countCritical++;
     });
 
-    // Rumus Weighted GPM
     const avgGPMOffer = sumOffer > 0 ? ((sumOffer - sumBarecostForOffer) / sumOffer) * 100 : 0;
     const avgGPMContract = sumContract > 0 ? ((sumContract - sumBarecostForContract) / sumContract) * 100 : 0;
 
-    // Hitung Proyek Done
     const doneProjects = data.filter(p => checkIsDone(p.status, p.progress)).length;
 
     return { 
@@ -491,7 +537,20 @@ export default function App() {
     });
   }, [data, loadSettings, stats, loadChartMetric]);
 
-  const loadByOwner = useMemo(() => { const load = {}; data.forEach(p => { const ownerName = p.owner || "Others"; if (ownerName.toLowerCase() === 'owner') return; const cleanName = ownerName.trim(); if (!load[cleanName]) load[cleanName] = { name: cleanName, count: 0, value: 0 }; load[cleanName].count += 1; load[cleanName].value += p.penawaran; }); return Object.values(load).sort((a, b) => b.value - a.value); }, [data]);
+  const loadByOwner = useMemo(() => { 
+    const load = {}; 
+    data.forEach(p => { 
+        const ownerName = p.owner || "Others"; 
+        if (ownerName.toLowerCase() === 'owner') return; 
+        const cleanName = ownerName.trim(); 
+        if (!load[cleanName]) load[cleanName] = { name: cleanName, count: 0, value: 0, contractValue: 0 }; 
+        load[cleanName].count += 1; 
+        load[cleanName].value += p.penawaran; 
+        load[cleanName].contractValue += p.kontrak; 
+    }); 
+    return Object.values(load).sort((a, b) => b.value - a.value); 
+  }, [data]);
+
   const statusData = useMemo(() => { const statuses = {}; data.forEach(p => { let st = (p.status || "Unknown").toUpperCase(); if (st.includes("STATUS") || st === "") return; statuses[st] = (statuses[st] || 0) + 1; }); return Object.keys(statuses).map(key => ({ name: key, value: statuses[key] })).sort((a, b) => b.value - a.value); }, [data]);
   const profitData = useMemo(() => { let filtered = showAllProfitability ? data : data.filter(d => checkIsDone(d.status, d.progress)); const aggMap = {}; const key = profitViewMode === 'owner' ? 'owner' : 'pic'; filtered.forEach(p => { let name = p[key] || "Others"; if (key === 'pic' && (name.toLowerCase().includes("pic utama") || name.toLowerCase().includes("pic support"))) return; if (key === 'owner' && name.toLowerCase() === 'owner') return; if (!aggMap[name]) aggMap[name] = { name, offer: 0, contract: 0, gv_offer: 0, gv_contract: 0 }; aggMap[name].offer += p.penawaran; aggMap[name].contract += p.kontrak; aggMap[name].gv_offer += (p.gpm_offer_pct/100)*p.penawaran; aggMap[name].gv_contract += (p.gpm_contract_pct/100)*p.kontrak; }); return Object.values(aggMap).map(o => ({ name: o.name, gpm_offer_pct: o.offer > 0 ? (o.gv_offer/o.offer)*100 : 0, gpm_contract_pct: o.contract > 0 ? (o.gv_contract/o.contract)*100 : 0 })).sort((a,b) => b.gpm_contract_pct - a.gpm_contract_pct).slice(0, 10); }, [data, showAllProfitability, profitViewMode]);
   
@@ -525,9 +584,8 @@ export default function App() {
   const activeProjectsList = useMemo(() => filteredProjects.filter(p => !checkIsDone(p.status, p.progress)), [filteredProjects]);
   const doneProjectsList = useMemo(() => filteredProjects.filter(p => checkIsDone(p.status, p.progress)), [filteredProjects]);
   
-  // LOGIC SORT KHUSUS DASHBOARD (REQ #3 + Limit 10 + All Statuses)
   const dashboardProjects = useMemo(() => {
-    let sorted = [...filteredProjects];
+    let sorted = [...data]; 
     sorted.sort((a, b) => {
         const aHasNotes = notes[a.project_name] && notes[a.project_name].length > 0;
         const bHasNotes = notes[b.project_name] && notes[b.project_name].length > 0;
@@ -538,7 +596,7 @@ export default function App() {
         return dateB - dateA;
     });
     return sorted.slice(0, 10);
-  }, [filteredProjects, notes]);
+  }, [data, notes]);
 
   const uniqueOwners = useMemo(() => ['All', ...new Set(data.map(d => d.owner).filter(o => o && o.toLowerCase() !== 'owner').sort())], [data]);
   const uniquePics = useMemo(() => ['All', ...new Set(data.map(d => d.pic).filter(p => p && !p.toLowerCase().includes('pic utama') && !p.toLowerCase().includes('pic support')).sort())], [data]);
@@ -554,7 +612,7 @@ export default function App() {
   // --- REUSABLE HEADER CELL ---
   const SortableHeader = ({ label, sortKey, currentSort, onSort, align="left", stickyLeft = false }) => (
       <th 
-        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0' : ''}`} 
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-100 transition-colors group text-${align} sticky top-0 z-20 bg-slate-50 shadow-sm ${stickyLeft ? 'left-0 z-30' : 'z-20'}`} 
         onClick={() => onSort(sortKey)}
       >
         <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
@@ -629,21 +687,19 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <KPICard title="Total Barecost" value={formatCompactCurrency(stats.totalBarecost)} icon={Wallet} colorClass="border-slate-500" />
                 <KPICard title="Total Penawaran" value={formatCompactCurrency(stats.totalPenawaran)} icon={DollarSign} colorClass="border-emerald-500" subtext={<span className="text-emerald-600">Avg GPM: {formatPercent(stats.avgGPMOffer)}</span>} />
-                
-                {/* REVISI: Total Kontrak dengan subtext jumlah kontrak */}
                 <KPICard 
                     title="Total Kontrak" 
                     value={formatCompactCurrency(stats.totalKontrak)} 
                     icon={TrendingUp} 
                     colorClass="border-blue-500" 
                     subtext={
-                        <div className="flex flex-col">
+                        <div className="flex items-center gap-1">
                             <span className="text-blue-600">Avg GPM: {formatPercent(stats.avgGPMContract)}</span>
-                            <span className="text-slate-400 text-[10px] mt-0.5">{stats.countContract} Proyek Deal</span>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-slate-500">{stats.countContract} Proyek Deal</span>
                         </div>
                     } 
                 />
-
                 <Card className={`p-4 border-l-4 ${stats.countCritical > 0 || stats.countOverdue > 0 ? 'border-l-red-500' : 'border-l-emerald-500'} flex flex-col justify-between h-full`}>
                     <div className="flex justify-between items-start mb-2"><div><p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Proyek</p><h3 className="text-3xl font-bold text-slate-800 mt-1">{stats.totalProjects}</h3></div><div className={`p-3 bg-slate-50 rounded-xl ${stats.countCritical > 0 || stats.countOverdue > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{stats.countCritical > 0 || stats.countOverdue > 0 ? <AlertCircle size={24}/> : <CheckCircle2 size={24}/>}</div></div>
                     <div className="mt-auto pt-3 border-t border-slate-50 text-xs flex flex-col gap-1.5">
@@ -669,14 +725,18 @@ export default function App() {
                     </Card>
                     <Card className="lg:col-span-3 overflow-hidden">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-white"><h3 className="font-bold text-slate-700">Update Proyek Terbaru</h3><button onClick={() => setActiveTab('projects')} className="text-emerald-600 text-sm font-medium hover:text-emerald-700 flex items-center gap-1">Lihat Semua <ChevronRight size={16}/></button></div>
-                        <div className="overflow-x-auto"><table className="w-full text-sm text-left text-slate-600"><thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider">
+                        <div className="overflow-x-auto max-h-[500px] overflow-y-auto"><table className="w-full text-sm text-left text-slate-600 relative">
+                            <thead className="bg-slate-50 text-slate-500 uppercase font-semibold text-[11px] tracking-wider z-20">
                             <tr>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-left">Nama Pekerjaan</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-left">PIC</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Barecost</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Penawaran</th>
-                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Status</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">Kontrak</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">GPM Offer</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-right">GPM Cont</th>
                                 <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Last Update</th>
+                                <th className="px-6 py-4 sticky top-0 z-20 bg-slate-50 shadow-sm text-center">Status</th>
                                 <th className="px-6 py-4 text-center sticky top-0 z-20 bg-slate-50 shadow-sm">Action</th>
                             </tr>
                             </thead><tbody className="divide-y divide-slate-100">
@@ -692,8 +752,11 @@ export default function App() {
                                     <td className="px-6 py-4 text-sm align-top pt-4 whitespace-nowrap">{project.pic}</td>
                                     <td className="px-6 py-4 text-right font-mono text-sm text-slate-500 align-top pt-4 whitespace-nowrap">{formatCurrency(project.barecost)}</td>
                                     <td className="px-6 py-4 text-right font-mono text-sm text-slate-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.penawaran)}</td>
-                                    <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
+                                    <td className="px-6 py-4 text-right font-mono text-sm text-blue-700 align-top pt-4 whitespace-nowrap">{formatCurrency(project.kontrak)}</td>
+                                    <td className="px-6 py-4 text-right font-mono text-sm text-emerald-600 font-bold align-top pt-4">{formatPercent(project.gpm_offer_pct)}</td>
+                                    <td className="px-6 py-4 text-right font-mono text-sm text-blue-600 font-bold align-top pt-4">{formatPercent(project.gpm_contract_pct)}</td>
                                     <td className="px-6 py-4 text-center text-sm text-slate-500 align-top pt-4">{formatDate(project.last_update_date)}</td>
+                                    <td className="px-6 py-4 text-center align-top pt-4"><Badge status={project.status} /></td>
                                     <td className="px-6 py-4 text-center align-top pt-4">
                                         <button onClick={() => setSelectedProjectForNotes(project)} className={`p-2 rounded-full transition-all relative ${notes[project.project_name]?.length > 0 ? 'text-emerald-500 bg-emerald-50' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-100'}`} title="Lihat Notes">
                                             <FileText size={18} />{notes[project.project_name]?.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
@@ -815,6 +878,7 @@ export default function App() {
                                     <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Total Nilai Penawaran</th>
                                     <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Avg GPM Penawaran</th>
                                     <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Avg GPM Kontrak</th>
+                                    <th className="px-6 py-4 text-right sticky top-0 bg-slate-50 shadow-sm">Total Nilai Kontrak</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -834,6 +898,7 @@ export default function App() {
                                             <td className="px-6 py-4 text-right font-mono text-sm text-slate-700">{formatCurrency(owner.value)}</td>
                                             <td className="px-6 py-4 text-right"><span className={`font-bold text-sm ${avgOwnerGPM > 15 ? 'text-emerald-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerGPM)}</span></td>
                                             <td className="px-6 py-4 text-right"><span className={`font-bold text-sm ${avgOwnerContractGPM > 15 ? 'text-blue-600' : 'text-slate-500'}`}>{formatPercent(avgOwnerContractGPM)}</span></td>
+                                            <td className="px-6 py-4 text-right font-mono text-sm text-blue-700">{formatCurrency(owner.contractValue)}</td>
                                         </tr>
                                     ); 
                                 })}
